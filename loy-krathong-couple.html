@@ -8,27 +8,51 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600&display=swap" rel="stylesheet">
 <style>
-  html,body{height:100%;margin:0;overflow:hidden;background:#070b24;font-family:'Mali','Sarabun',sans-serif;color:#fff5e6}
+  html,body{height:100%;margin:0;overflow:hidden;background:radial-gradient(ellipse at 50% 0%,#40245b 0%,#171936 48%,#070b24 100%);font-family:'Mali','Sarabun',sans-serif;color:#fff5e6}
   canvas#stage{position:fixed;inset:0;width:100%;height:100%;touch-action:none}
-  .panel{background:rgba(14,16,50,.78);backdrop-filter:blur(10px);border:1px solid rgba(255,214,150,.22);border-radius:1.5rem;padding:1.25rem}
+  .panel{background:linear-gradient(145deg,rgba(54,35,78,.9),rgba(17,23,57,.91));backdrop-filter:blur(14px);border:1px solid rgba(255,191,218,.35);border-radius:1.5rem;padding:1.25rem;box-shadow:0 16px 55px rgba(10,4,32,.38),inset 0 1px rgba(255,255,255,.08)}
   .inp{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,214,150,.3);border-radius:.9rem;padding:.65rem .9rem;color:#fff;outline:none}
   .inp:focus{border-color:#ffcf7a;box-shadow:0 0 0 3px rgba(255,207,122,.25)}
-  .btn{border-radius:999px;padding:.7rem 1.2rem;font-weight:600;background:linear-gradient(135deg,#ffb347,#ff6f91);color:#2a0f2a;transition:transform .15s}
+  .btn{border-radius:999px;padding:.7rem 1.2rem;font-weight:600;background:linear-gradient(135deg,#ffd17e,#ff9ab7 55%,#dfa3ff);color:#351b3d;box-shadow:0 7px 20px rgba(255,125,177,.18);transition:transform .15s,filter .15s}
   .btn:active{transform:scale(.96)}
-  .btn2{border-radius:999px;padding:.7rem 1.2rem;font-weight:600;background:rgba(255,255,255,.12);border:1px solid rgba(255,214,150,.35)}
+  .btn2{border-radius:999px;padding:.7rem 1.2rem;font-weight:600;background:rgba(255,220,237,.1);border:1px solid rgba(255,191,218,.38);color:#fff5fb}
   .btn:disabled{opacity:.5}
   .opt{border-radius:1rem;border:2px solid transparent;background:rgba(255,255,255,.07);padding:.35rem;text-align:center;font-size:.8rem}
   .opt.sel{border-color:#ffcf7a;background:rgba(255,207,122,.16)}
-  .chip{background:rgba(14,16,50,.7);border:1px solid rgba(255,214,150,.25);border-radius:999px;padding:.35rem .8rem;font-size:.85rem}
+  .chip{background:rgba(39,30,74,.76);border:1px solid rgba(255,191,218,.32);border-radius:999px;padding:.4rem .8rem;font-size:.85rem;min-height:40px;color:#fff3fb}
+  #toast{position:fixed;z-index:20;left:50%;top:calc(env(safe-area-inset-top) + 5rem);transform:translate(-50%,-12px);opacity:0;transition:.25s;max-width:min(92vw,440px);background:rgba(51,31,74,.96);border:1px solid rgba(255,183,214,.55);border-radius:1.2rem;padding:.7rem 1rem;text-align:center;box-shadow:0 12px 35px #08051a99;pointer-events:none}
+  #toast.on{opacity:1;transform:translate(-50%,0)}
+  .cute-title{background:linear-gradient(90deg,#ffe2a7,#ffacd0,#ddc2ff);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 5px 25px rgba(255,154,205,.14)}
+  .soft-heart{position:absolute;pointer-events:none;color:#ffadd0;opacity:.18;font-size:1.5rem;animation:heartFloat 5s ease-in-out infinite}
+  @keyframes heartFloat{50%{transform:translateY(-9px) rotate(8deg);opacity:.3}}
   .hidden{display:none!important}
   #ui{position:fixed;inset:0;pointer-events:none;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
   #ui>*{pointer-events:auto}
+  @media(max-width:700px){
+    #hud{padding:calc(env(safe-area-inset-top) + .45rem) .65rem .4rem;gap:.45rem;flex-direction:column;align-items:stretch;background:linear-gradient(180deg,rgba(7,8,31,.62),transparent)}
+    #hud>div{gap:.35rem;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+    #hud>div::-webkit-scrollbar{display:none}
+    .chip{min-height:42px;white-space:nowrap}
+    #status{top:6.7rem;padding:0 .8rem;font-size:.78rem}
+    #bottom{padding:calc(.6rem + env(safe-area-inset-bottom)) .75rem;gap:.4rem}
+    #rxRow{width:100%;justify-content:center}
+    #extras{left:.65rem!important;right:.65rem;bottom:6.3rem!important;max-width:none!important;max-height:56vh!important;border-radius:1.35rem;padding:1rem}
+    #lobby{padding:1rem;overflow:auto;align-items:flex-start;padding-top:max(1.1rem,env(safe-area-inset-top))}
+    #lobby .panel{margin:auto 0;max-height:calc(100dvh - 2rem);overflow:auto}
+    #setup{padding:.6rem;align-items:flex-end}
+    #setup .panel{max-height:calc(100dvh - env(safe-area-inset-top) - .8rem)!important;border-radius:1.4rem 1.4rem .8rem .8rem;padding:1rem}
+    #setup .grid-cols-4{grid-template-columns:repeat(2,minmax(0,1fr))}
+    #setup .flex.gap-2{flex-wrap:wrap}
+    #setup .inp{font-size:16px}
+    #btnKeepsakes{font-size:.8rem;padding:.55rem .9rem}
+  }
 </style>
 </head>
 <body>
 <canvas id="stage"></canvas>
 
 <div id="ui">
+  <div id="toast" role="status" aria-live="polite"></div>
   <!-- HUD -->
   <div id="hud" class="hidden absolute top-0 left-0 right-0 flex items-start justify-between p-3" style="pointer-events:none">
     <div class="flex gap-2 items-center flex-wrap" style="pointer-events:auto">
@@ -58,11 +82,13 @@
   <!-- Lobby -->
   <div id="lobby" class="absolute inset-0 flex items-center justify-center p-5">
     <div class="panel w-full max-w-sm">
-      <h1 class="text-2xl font-semibold text-center">ลอยกระทงกับแฟน</h1>
+      <div class="soft-heart" style="left:1rem;top:1.4rem">♥</div><div class="soft-heart" style="right:1.2rem;top:2rem;animation-delay:1.2s">♥</div>
+      <h1 class="text-2xl font-semibold text-center cute-title">ลอยกระทงกับแฟน</h1>
       <p class="text-center text-sm opacity-80 mb-4">ปล่อยกระทงคนละเครื่อง แล้วดันให้มาเจอกัน</p>
       <label class="text-sm opacity-80">ชื่อเล่นของฉัน</label>
-      <input id="inName" class="inp mb-3" maxlength="14" placeholder="เช่น เนม">
+      <input id="inName" class="inp mb-3" maxlength="14" placeholder="เช่น ปัน">
       <button id="btnCreate" class="btn w-full">สร้างห้องใหม่</button>
+      <div id="savedRoomBox" class="hidden rounded-2xl p-3 mt-3 text-center" style="background:rgba(255,190,220,.1);border:1px solid rgba(255,190,220,.22)"><div class="text-sm">💌 มีห้องเดิมรออยู่</div><div id="savedRoomLabel" class="text-xs opacity-70 my-1"></div><button id="btnResume" class="btn2 w-full">กลับเข้าห้องเดิม</button></div>
       <div class="text-center text-xs opacity-60 my-3">หรือเข้าร่วมห้องของแฟน</div>
       <div class="flex gap-2">
         <input id="inCode" class="inp text-center tracking-widest" inputmode="numeric" maxlength="4" placeholder="รหัส 4 หลัก">
@@ -101,7 +127,7 @@
       <div id="qrBox" class="bg-white p-3 rounded-xl inline-block"></div>
       <div class="mt-3"><button id="btnQRClose" class="btn2">ปิด</button></div></div>
   </div>
-  <div id="extras" class="hidden absolute left-3 bottom-24 panel text-sm" style="max-width:260px;max-height:40vh;overflow:auto"><div class="font-semibold">💞 ของขวัญและความทรงจำ</div><div id="extrasBody" class="mt-2"></div><button id="btnExtrasClose" class="btn2 mt-2">ปิด</button></div>
+  <div id="extras" class="hidden absolute left-3 bottom-24 panel text-sm" style="max-width:360px;max-height:55vh;overflow:auto"><div class="font-semibold cute-title">💞 ของขวัญและความทรงจำ</div><div id="extrasBody" class="mt-2"></div><div class="grid grid-cols-2 gap-2 mt-3"><button id="btnBackup" class="btn2">⬇️ สำรองความทรงจำ</button><button id="btnDeleteRoom" class="btn2">🗑️ ลบห้องและรูป</button><button id="btnExtrasClose" class="btn2 col-span-2">ปิด</button></div></div>
   <!-- Reveal -->
   <div id="reveal" class="hidden absolute inset-0 flex items-center justify-center p-4" style="background:rgba(5,6,25,.6)">
     <div class="panel w-full max-w-sm overflow-auto text-center" style="max-height:92vh">
@@ -154,15 +180,27 @@ const ref = p => FB.D.ref(FB.db,p);
 
 /* ---------- State ---------- */
 let demo=false, room=null, slot=0, collided=false, colliding=false, celeb=0, burstT=0, heartT=0;
-const pid = Math.random().toString(36).slice(2,9);
+let remoteHistory={}, paOnline=false, playerSnapshotReady=false;
+const pid = localStorage.getItem('loy-player-id') || Math.random().toString(36).slice(2,11);
+localStorage.setItem('loy-player-id',pid);
 const mk = s => ({name:'',style:0,charm:0,wish:'',secret:'',released:false,lit:false,x:s?.8:.2,y:s?.82:.74,vx:0,vy:0,slot:s,here:false});
 let me = mk(0), pa = mk(1); let bumpFlash=0;
 me.stickers=[]; pa.stickers=[]; me.coupons=[]; pa.coupons=[]; me.wishlist=[]; pa.wishlist=[]; me.photo=''; me.photoShape='heart'; let pendingSticker='';
 let selStyle=0, selCharm=0;
 const sync = o => { if(!demo && FB && room) FB.D.update(ref(`rooms/${room}/players/${pid}`),o); };
+let toastTimer=0;
+function notify(message){const t=$('toast');t.textContent=message;t.classList.add('on');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('on'),3400);}
+function rememberRoom(){if(!room||demo)return;localStorage.setItem('loy-last-room',room);localStorage.setItem('loy-last-name',me.name||'');}
+function restorePlayer(o){
+  Object.assign(me,{name:o.name||me.name,style:o.style||0,charm:o.charm||0,wish:o.wish||'',secret:o.secret||'',released:!!o.released,lit:!!o.lit,x:o.x??me.x,y:o.y??me.y,slot:o.slot??slot,stickers:o.stickers||[],coupons:o.coupons||[],wishlist:o.wishlist||[],photo:o.photo||'',photoShape:o.photoShape||'heart'});
+  if(me.photo){me.photoImg=new Image();me.photoImg.src=me.photo;}
+  selStyle=me.style;selCharm=me.charm;
+  $('inWish').value=me.wish;$('inSecret').value=me.secret;$('inName').value=me.name;
+  renderLists();
+}
 
 /* ---------- Audio (Web Audio API) ---------- */
-let AC=null, muted=false;
+let AC=null, muted=false, micStream=null;
 function ensureAudio(){
   if(!AC){ try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch(e){} }
   if(AC && AC.state==='suspended') AC.resume();
@@ -387,12 +425,13 @@ function setMusic(s){
   $('btnMusic').textContent=s<0?'🎵':['🪕','☕','🎸'][s]; $('btnMusic').style.opacity=s<0?.5:1;
 }
 async function toggleMic(){
-  if(micAn){ micAn=null; $('btnMic').style.opacity=.5; return; }
+  if(micAn){ micAn=null; micStream?.getTracks().forEach(t=>t.stop());micStream=null;$('btnMic').style.opacity=.5; notify('ปิดไมโครโฟนแล้ว'); return; }
+  if(!window.isSecureContext||!navigator.mediaDevices?.getUserMedia){notify('🎤 เปิดผ่านลิงก์ HTTPS แล้วอนุญาตไมโครโฟนก่อนนะ');show('status',true);$('status').textContent='ไมค์ใช้ได้บนเว็บ HTTPS และต้องอนุญาตไมโครโฟน';return;}
   try{
-    const st=await navigator.mediaDevices.getUserMedia({audio:true}); ensureAudio();
-    const src=AC.createMediaStreamSource(st); micAn=AC.createAnalyser(); micAn.fftSize=512; micBuf=new Uint8Array(512); src.connect(micAn);
-    $('btnMic').style.opacity=1; show('status',true); $('status').textContent='🎤 เป่าลมใส่จอเพื่อดันกระทงได้เลย';
-  }catch(e){ show('status',true); $('status').textContent='เปิดไมโครโฟนไม่ได้ ตรวจสิทธิ์ของเบราว์เซอร์อีกครั้ง'; }
+    micStream=await navigator.mediaDevices.getUserMedia({audio:true}); ensureAudio();
+    const src=AC.createMediaStreamSource(micStream); micAn=AC.createAnalyser(); micAn.fftSize=512; micBuf=new Uint8Array(512); src.connect(micAn);
+    $('btnMic').style.opacity=1; show('status',true); $('status').textContent='🎤 เป่าลมใส่จอเพื่อดันกระทงได้เลย';notify('🎤 พร้อมแล้ว เป่าลมเบา ๆ ใส่ไมค์ได้เลย');
+  }catch(e){ const denied=e.name==='NotAllowedError'||e.name==='SecurityError';const msg=denied?'ยังไม่ได้อนุญาตไมโครโฟน แตะไอคอนข้าง URL เพื่ออนุญาตได้':'หาไมโครโฟนไม่เจอ ลองใช้อีกเบราว์เซอร์นะ';show('status',true);$('status').textContent=msg;notify('🎤 '+msg); }
 }
 function blow(dt){
   micAn.getByteTimeDomainData(micBuf); let sum=0; for(const v of micBuf){ const d=(v-128)/128; sum+=d*d; }
@@ -400,14 +439,15 @@ function blow(dt){
   if(rms>.1){ const dir=pa.here?(Math.sign(pa.x-me.x)||1):(slot?-1:1); me.vx+=dir*Math.min(rms,.6)*500*dt; }
 }
 async function enableShake(){
-  if(shakeOn) return;
+  if(shakeOn){notify('📳 พร้อมเขย่าเซียมซีแล้ว');return;}
+  if(!window.isSecureContext||!window.DeviceMotionEvent){notify('📳 เซ็นเซอร์เขย่าต้องใช้มือถือและเว็บ HTTPS');return;}
   try{
-    if(window.DeviceMotionEvent&&DeviceMotionEvent.requestPermission){ if(await DeviceMotionEvent.requestPermission()!=='granted') return; }
+    if(window.DeviceMotionEvent&&DeviceMotionEvent.requestPermission){ if(await DeviceMotionEvent.requestPermission()!=='granted'){notify('📳 อนุญาต Motion ในการตั้งค่าเบราว์เซอร์ก่อนนะ');return;} }
     addEventListener('devicemotion',e=>{
       const a=e.accelerationIncludingGravity; if(!a) return;
       if(Math.abs(a.x)+Math.abs(a.y)+Math.abs(a.z)>38 && Date.now()-lastShake>1500){ lastShake=Date.now(); revealFortune(); }
-    }); shakeOn=true;
-  }catch(e){}
+    }); shakeOn=true;notify('📳 พร้อมแล้ว เขย่ามือถือเพื่อเสี่ยงทาย');
+  }catch(e){notify('📳 เปิดเซ็นเซอร์ไม่ได้ ลองกดปุ่มทำนายแทนได้เลย');}
 }
 function revealFortune(){
   const el=$('fortuneTxt'); if(!el||$('reveal').classList.contains('hidden')) return;
@@ -515,6 +555,7 @@ CHARMS.forEach((n,i)=>{
 /* ---------- Status / UI refresh ---------- */
 function refreshUI(){
   const st=$('status'), bl=$('btnLight');
+  if(room)$('roomChip').textContent=demo?'โหมดทดลอง':`ห้อง ${room} · ${pa.here?'💚 แฟนออนไลน์':'💭 รอแฟน'}`;
   bl.classList.add('hidden');
   if(!me.released){ st.textContent=''; return; }
   show('status',true);
@@ -530,57 +571,77 @@ function refreshUI(){
 
 /* ---------- Room flow ---------- */
 function enterSetup(){
-  show('lobby',false); show('setup',true); show('hud',true); show('bottom',true);
+  show('lobby',false); show('setup',!me.released); show('hud',true); show('bottom',true); show('rxRow',me.released);
   $('roomChip').textContent=demo?'โหมดทดสอบ':'ห้อง '+room;
   show('btnCopy',!demo); show('btnQR',!demo);
-  me.slot=slot; me.x=slot?.8:.2; me.y=slot?.82:.74; pa.slot=slot?0:1;
+  me.slot=slot; if(!me.released){me.x=slot?.8:.2; me.y=slot?.82:.74;} pa.slot=slot?0:1;
   history.replaceState(null,'',demo?location.pathname:`?room=${room}`);
+  rememberRoom();
 }
 function listen(){
   FB.D.onValue(ref(`rooms/${room}/players`),s=>{
     const v=s.val()||{}, k=Object.keys(v).find(k=>k!==pid);
     if(k){
-      const o=v[k]; pa.here=true; if(o.photo && (!pa.photoImg||pa.photoImg.src!==o.photo)){pa.photoImg=new Image();pa.photoImg.src=o.photo;}
+      const o=v[k], prevCoupons=pa.coupons||[]; pa.here=paOnline; if(o.photo && (!pa.photoImg||pa.photoImg.src!==o.photo)){pa.photoImg=new Image();pa.photoImg.src=o.photo;}
       Object.assign(pa,{name:o.name||'แฟน',style:o.style||0,charm:o.charm||0,wish:o.wish||'',secret:o.secret||'',released:!!o.released,lit:!!o.lit,slot:o.slot??pa.slot,stickers:o.stickers||[],coupons:o.coupons||[],wishlist:o.wishlist||[],photo:o.photo||'',photoShape:o.photoShape||'heart'});
+      if(playerSnapshotReady)(pa.coupons||[]).forEach((c,i)=>{if(c.used&&!prevCoupons[i]?.used)notify(`🎟️ ${pa.name} ใช้${c.text}แล้ว 💕`);});
+      playerSnapshotReady=true;
       if(pa.tx==null && o.x!=null){ pa.x=o.x; pa.y=o.y; }
       if(o.x!=null){ pa.tx=o.x; pa.ty=o.y; }
       if(o.react && o.react.t!==pa.rt){ const first=pa.rt==null; pa.rt=o.react.t; if(!first||Date.now()-o.react.t<5000) spawnReact(pa,o.react.e); }
-
       if(o.bump && o.bump!==pa.bump){pa.bump=o.bump;if(Date.now()-o.bump<1800){bumpFlash=1;burst(W/2,H*.55);sfxChime();}}
-    } else pa.here=false;
+    } else { pa.here=paOnline; }
+    if(!$('extras').classList.contains('hidden'))renderKeepsakes();
     refreshUI();
   });
+  FB.D.onValue(ref(`rooms/${room}/presence`),s=>{
+    const v=s.val()||{}, item=Object.entries(v).find(([id])=>id!==pid), wasOnline=paOnline;
+    paOnline=!!item;pa.here=paOnline;
+    if(item&&item[1]?.name&&!pa.name)pa.name=item[1].name;
+    if(paOnline&&!wasOnline)notify(`💌 ${pa.name||item[1].name||'แฟน'} เข้าห้องแล้ว!`);
+    if(!paOnline&&wasOnline)notify('แฟนออกจากห้องแล้ว ไว้กลับมาเจอกันใหม่นะ');
+    refreshUI();
+  });
+  FB.D.onValue(ref('.info/connected'),async s=>{
+    if(!s.val())return;
+    const presenceRef=ref(`rooms/${room}/presence/${pid}`);
+    try{await FB.D.onDisconnect(presenceRef).remove();await FB.D.set(presenceRef,{name:me.name||'แฟน',since:Date.now()});}catch(e){notify('แสดงสถานะออนไลน์ไม่ได้ แต่ยังเข้าห้องได้');}
+  });
   FB.D.onValue(ref(`rooms/${room}/collided`),s=>{ if(s.val()){ fSeed=+s.val()||fSeed; boom(); } });
+  FB.D.onValue(ref(`rooms/${room}/memories`),s=>{remoteHistory=s.val()||{};if(!$('extras').classList.contains('hidden'))renderKeepsakes();});
 }
 function needName(){
   const n=$('inName').value.trim();
   if(!n){ $('lobbyMsg').textContent='กรอกชื่อเล่นก่อนนะ'; return null; }
-  me.name=n; return n;
+  me.name=n;localStorage.setItem('loy-last-name',n); return n;
 }
 $('btnCreate').onclick=async()=>{
   ensureAudio(); if(!needName()) return;
   if(!FB){ $('lobbyMsg').textContent='ยังไม่ได้ตั้งค่า Firebase ลองเล่นโหมดทดสอบแทนได้เลย'; return; }
-  let code; 
-  for(let i=0;i<10;i++){
-    code=String(Math.floor(1000+Math.random()*9000));
-    if(!(await FB.D.get(ref(`rooms/${code}`))).exists()) break;
-  }
-  room=code; slot=0; demo=false;
-  await FB.D.set(ref(`rooms/${room}`),{created:Date.now()});
-  enterSetup(); listen();
+  try{
+    let code;
+    for(let i=0;i<10;i++){code=String(Math.floor(1000+Math.random()*9000));if(!(await FB.D.get(ref(`rooms/${code}`))).exists())break;}
+    room=code; slot=0; demo=false; me.released=false;
+    await FB.D.set(ref(`rooms/${room}`),{created:Date.now()});
+    enterSetup(); listen(); notify(`🪷 สร้างห้อง ${room} แล้ว ชวนแฟนเข้ามาได้เลย`);
+  }catch(e){$('lobbyMsg').textContent='เชื่อม Firebase ไม่สำเร็จ ลองโหลดหน้าใหม่อีกครั้ง';notify('เชื่อมฐานข้อมูลไม่ได้ ตรวจสิทธิ์ Firebase แล้วลองอีกครั้ง');}
 };
 $('btnJoin').onclick=async()=>{
   ensureAudio(); if(!needName()) return;
   const code=$('inCode').value.trim();
   if(!/^\d{4}$/.test(code)){ $('lobbyMsg').textContent='ใส่รหัสห้อง 4 หลัก'; return; }
   if(!FB){ $('lobbyMsg').textContent='ยังไม่ได้ตั้งค่า Firebase'; return; }
-  const snap=await FB.D.get(ref(`rooms/${code}`));
-  if(!snap.exists()){ $('lobbyMsg').textContent='ไม่พบห้องนี้ ตรวจรหัสอีกครั้ง'; return; }
-  const ps=snap.val().players||{}, others=Object.values(ps);
-  if(others.length>=2){ $('lobbyMsg').textContent='ห้องนี้เต็มแล้ว'; return; }
-  room=code; demo=false; slot=others.length&&others[0].slot===0?1:0;
-  enterSetup(); listen();
+  try{
+    const snap=await FB.D.get(ref(`rooms/${code}`));
+    if(!snap.exists()){ $('lobbyMsg').textContent='ไม่พบห้องนี้ ตรวจรหัสอีกครั้ง'; return; }
+    const ps=snap.val().players||{}, existing=ps[pid], others=Object.entries(ps).filter(([id])=>id!==pid);
+    if(!existing&&others.length>=2){ $('lobbyMsg').textContent='ห้องนี้เต็มแล้ว'; return; }
+    room=code; demo=false; slot=existing?.slot??(others.length&&others[0][1].slot===0?1:0);
+    if(existing){restorePlayer(existing);notify('💞 กลับเข้าห้องเดิมแล้ว ยินดีต้อนรับกลับ!');} else {me.released=false;notify('🪷 เข้าห้องสำเร็จ รอปล่อยกระทงด้วยกัน');}
+    enterSetup(); listen();
+  }catch(e){$('lobbyMsg').textContent='เชื่อมฐานข้อมูลไม่สำเร็จ ลองอีกครั้ง';notify('เข้าไม่ได้ อาจหมดเวลา Test mode หรือยังไม่ได้เชื่อมต่อ');}
 };
+$('btnResume').onclick=()=>{$('inCode').value=localStorage.getItem('loy-last-room')||'';$('inName').value=$('inName').value||localStorage.getItem('loy-last-name')||'';$('btnJoin').click();};
 $('btnDemo').onclick=()=>{
   ensureAudio(); if(!needName()) return;
   demo=true; room='DEMO'; slot=0; enterSetup();
@@ -604,13 +665,36 @@ $('btnQR').onclick=()=>{ $('qrBox').innerHTML=''; if(window.QRCode) new QRCode($
 $('btnQRClose').onclick=()=>show('qr',false);
 $('btnPhotoShape').onclick=()=>{me.photoShape=me.photoShape==='heart'?'circle':'heart';$('btnPhotoShape').textContent=me.photoShape==='heart'?'💗 กรอบหัวใจ':'⚪ กรอบวงกลม';};
 $('photoFlag').onchange=e=>{const f=e.target.files?.[0];if(!f)return;if(f.size>2_000_000){alert('เลือกรูปขนาดไม่เกิน 2 MB');e.target.value='';return;}const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=180;c.height=180;const z=Math.min(im.width,im.height),x=(im.width-z)/2,y=(im.height-z)/2;c.getContext('2d').drawImage(im,x,y,z,z,0,0,180,180);me.photo=c.toDataURL('image/jpeg',.72);me.photoImg=new Image();me.photoImg.src=me.photo;};im.src=r.result;};r.readAsDataURL(f);};
-function renderLists(){const l=$('wishList');l.innerHTML=(me.wishlist||[]).map((v,i)=>`<div><label><input type="checkbox" ${v.done?'checked':''} data-w="${i}"> ${esc(v.text)}</label></div>`).join('')||'<span class="opacity-60">ยังไม่มีรายการ</span>';l.querySelectorAll('[data-w]').forEach(c=>c.onchange=()=>{me.wishlist[+c.dataset.w].done=c.checked;sync({wishlist:me.wishlist});});}
-$('btnWishAdd').onclick=()=>{const text=$('wishItem').value.trim();if(!text)return;me.wishlist.push({text,done:false});$('wishItem').value='';renderLists();};
-$('btnCouponAdd').onclick=()=>{me.coupons.push({text:$('couponPick').value,used:false});};
+function renderLists(){const l=$('wishList');l.innerHTML=(me.wishlist||[]).map((v,i)=>`<div><label><input type="checkbox" ${v.done?'checked':''} data-w="${i}"> ${esc(v.text)}</label></div>`).join('')||'<span class="opacity-60">ยังไม่มีรายการ</span>';l.querySelectorAll('[data-w]').forEach(c=>c.onchange=()=>{me.wishlist[+c.dataset.w].done=c.checked;if(me.released)sync({wishlist:me.wishlist});});}
+$('btnWishAdd').onclick=()=>{const text=$('wishItem').value.trim();if(!text)return;me.wishlist.push({text,done:false});$('wishItem').value='';renderLists();notify('📝 เพิ่มเป้าหมายคู่รักแล้ว');};
+$('btnCouponAdd').onclick=()=>{me.coupons.push({text:$('couponPick').value,used:false});notify('🎟️ เพิ่มคูปองรักแล้ว');};
 document.querySelectorAll('.sticker').forEach(b=>b.onclick=()=>{pendingSticker=b.textContent;});
 cv.addEventListener('pointerup',e=>{if(!pendingSticker||!me.released)return;const dx=(e.clientX/W-me.x)*2,dy=(e.clientY/H-me.y);if(Math.abs(dx)<1.5&&Math.abs(dy)<1.3){me.stickers.push({e:pendingSticker,dx,dy});sync({stickers:me.stickers});pendingSticker='';}});
-$('btnKeepsakes').onclick=()=>{const all=[...(me.coupons||[]).map((v,i)=>`<div>🎟️ ${esc(v.text)} ${v.used?'✓ ใช้แล้ว':`<button class="chip" data-c="${i}">ใช้สิทธิ์</button>`}</div>`),...(pa.coupons||[]).map(v=>`<div>💝 ${esc(v.text)} (ของแฟน)</div>`),...(me.wishlist||[]).map(v=>`<div>${v.done?'✅':'▫️'} ${esc(v.text)}</div>`)];const key=`loy-history-${room||'local'}`;let hist=JSON.parse(localStorage.getItem(key)||'[]');if(collided&&!hist.some(v=>v.day===new Date().toDateString())){hist.push({day:new Date().toDateString(),wish:me.wish});localStorage.setItem(key,JSON.stringify(hist));} $('extrasBody').innerHTML=`<div>ลอยด้วยกันแล้ว ${hist.length} ครั้งบนเครื่องนี้</div><div class="my-2">คำอธิษฐาน: ${esc(me.wish||'—')}</div>${all.join('')||'ยังไม่มีของขวัญ'}<div class="mt-2">บันทึกย้อนหลัง: ${hist.map(v=>esc(v.day)+' · '+esc(v.wish)).join('<br>')}</div>`;show('extras',true);$('extrasBody').querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{me.coupons[+b.dataset.c].used=true;sync({coupons:me.coupons});$('extrasBody').innerHTML+=' <div>ส่งสัญญาณให้แฟนแล้ว 💌</div>';});};
+function scrapbookKey(){return `loy-history-${room||'local'}`;}
+function getScrapbook(){try{return JSON.parse(localStorage.getItem(scrapbookKey())||'[]');}catch{return [];}}
+function recordMemory(){
+  const date=new Date(),year=String(date.getFullYear()),memory={year,day:date.toLocaleDateString('th-TH',{day:'numeric',month:'long',year:'numeric'}),at:date.toISOString(),names:[me.name,pa.name],wishes:[me.wish,pa.wish]};
+  const hist=getScrapbook();if(!hist.some(v=>v.year===year)){hist.push(memory);localStorage.setItem(scrapbookKey(),JSON.stringify(hist));}
+  if(FB&&!demo&&room)FB.D.set(ref(`rooms/${room}/memories/${year}/${pid}`),memory).catch(()=>notify('บันทึกในเครื่องแล้ว แต่ส่งสมุดขึ้นคลาวด์ไม่สำเร็จ'));
+}
+function renderKeepsakes(){
+  const hist=getScrapbook(),myCoupons=(me.coupons||[]).map((v,i)=>`<div class="flex items-center justify-between gap-2 my-1"><span>🎟️ ${esc(v.text)}</span>${v.used?'<span>ใช้แล้ว ✓</span>':`<button class="chip" data-c="${i}">ใช้สิทธิ์</button>`}</div>`),theirCoupons=(pa.coupons||[]).map(v=>`<div class="my-1">💝 ${esc(v.text)} ${v.used?'ใช้แล้ว ✓':'(ของแฟน)'}</div>`),wishlist=[...(me.wishlist||[]).map(v=>`<div>${v.done?'✅':'▫️'} ${esc(v.text)}</div>`),...(pa.wishlist||[]).map(v=>`<div>💗 ${v.done?'✅':'▫️'} ${esc(v.text)} <span class="opacity-60">(แฟน)</span></div>`)];
+  const cloud=Object.values(remoteHistory||{}).flatMap(v=>Object.values(v||{})), yearMap=new Map();
+  [...hist,...cloud].forEach(v=>{const old=yearMap.get(v.year);if(!old)yearMap.set(v.year,{...v,wishes:[...(v.wishes||[])]});else old.wishes=[...new Set([...(old.wishes||[]),...(v.wishes||[])])];});
+  const allHistory=[...yearMap.values()].sort((a,b)=>String(a.year).localeCompare(String(b.year)));
+  $('extrasBody').innerHTML=`<div class="rounded-xl p-2" style="background:rgba(255,255,255,.06)">🪷 ห้อง <b>${esc(room||'ทดลอง')}</b> · ${pa.here?'💚 แฟนอยู่ในห้อง':'💭 รอแฟน'}</div><div class="mt-2"><b>คำอธิษฐาน</b><br>💗 ${esc(me.wish||'—')}<br>💗 ${esc(pa.wish||'ยังไม่มา')}</div><div class="mt-2"><b>สิ่งที่อยากทำด้วยกัน</b>${wishlist.join('')||'<div class="opacity-60">ยังไม่มีรายการ</div>'}</div><div class="mt-2"><b>คูปอง</b>${[...myCoupons,...theirCoupons].join('')||'<div class="opacity-60">ยังไม่มีคูปอง</div>'}</div><div class="mt-2"><b>สมุดความทรงจำ · ${allHistory.length} ปี</b>${allHistory.map(v=>`<div>📖 ${esc(v.year)} · ${esc(v.day||'')}<br><span class="opacity-75">${esc((v.wishes||[]).filter(Boolean).join(' · ')||'คำอธิษฐานของเรา')}</span></div>`).join('')||'<div class="opacity-60">จะบันทึกเมื่อกระทงพบกัน 💞</div>'}</div>`;
+  $('extrasBody').querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{const coupon=me.coupons[+b.dataset.c];if(!coupon||coupon.used)return;coupon.used=true;sync({coupons:me.coupons});notify(`🎟️ ใช้${coupon.text}แล้ว ส่งสัญญาณให้แฟนเรียบร้อย 💌`);renderKeepsakes();});
+}
+$('btnKeepsakes').onclick=()=>{renderKeepsakes();show('extras',true);};
 $('btnExtrasClose').onclick=()=>show('extras',false);
+$('btnBackup').onclick=()=>{
+  const payload={format:'Loy Krathong Couple Memory',exportedAt:new Date().toISOString(),room,me:{name:me.name,wish:me.wish,secret:me.secret,style:me.style,coupons:me.coupons,wishlist:me.wishlist,photo:me.photo},partner:{name:pa.name,wish:pa.wish,secret:pa.secret,coupons:pa.coupons,wishlist:pa.wishlist,photo:pa.photo},history:getScrapbook(),cloudHistory:remoteHistory};
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}));a.download=`loy-krathong-${room||'memory'}-backup.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),3000);notify('💾 ดาวน์โหลดสมุดความทรงจำแล้ว');
+};
+$('btnDeleteRoom').onclick=async()=>{
+  if(!confirm('ลบห้องนี้พร้อมรูปและข้อมูลของทั้งคู่ใช่ไหม? การลบย้อนกลับไม่ได้'))return;
+  try{if(FB&&!demo&&room)await FB.D.remove(ref(`rooms/${room}`));localStorage.removeItem(scrapbookKey());if(localStorage.getItem('loy-last-room')===room){localStorage.removeItem('loy-last-room');localStorage.removeItem('loy-last-name');}notify('ลบห้องและข้อมูลเรียบร้อย');setTimeout(()=>location.assign(location.pathname),700);}catch(e){notify('ลบไม่สำเร็จ ตรวจสิทธิ์ฐานข้อมูลแล้วลองอีกครั้ง');}
+};
 
 $('btnRelease').onclick=()=>{
   ensureAudio();
@@ -630,6 +714,7 @@ $('btnLight').onclick=()=>{
 /* ---------- Easter egg: กระทงชนกัน ---------- */
 function boom(){
   if(collided) return; collided=true; celeb=0; burstT=0; ensureAudio();
+  recordMemory();notify('💞 กระทงเจอกันแล้ว บันทึกความทรงจำของปีนี้เรียบร้อย');
   burst((me.x+pa.x)/2*W,(me.y+pa.y)/2*H*.8); sfxFirework();
   setTimeout(showReveal,2600); refreshUI();
 }
@@ -700,9 +785,12 @@ $('btnSave').onclick=savePolaroid;
 /* ---------- Boot ---------- */
 (async()=>{
   const ok=await initFB();
-  $('fbNote').textContent=ok?'':'ยังไม่ได้ใส่ Firebase Config: เล่นได้เฉพาะโหมดทดสอบ';
+  $('fbNote').textContent=ok?'💞 ข้อมูลห้องซิงก์ผ่าน Firebase':'ยังเชื่อม Firebase ไม่ได้ เล่นโหมดทดลองได้';
   const r=new URLSearchParams(location.search).get('room');
   if(r) $('inCode').value=r.replace(/\D/g,'').slice(0,4);
+  $('inName').value=localStorage.getItem('loy-last-name')||'';
+  const last=localStorage.getItem('loy-last-room');
+  if(last){$('savedRoomLabel').textContent=`ห้อง ${last} · กลับมาเล่นหรือดูความทรงจำต่อได้`;$('savedRoomBox').classList.remove('hidden');if(!r)$('inCode').value=last;}
 })();
 </script>
 </body>
