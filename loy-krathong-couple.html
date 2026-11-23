@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ลอยกระทงออนไลน์กับแฟน</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  html,body{height:100%;margin:0;overflow:hidden;background:#070b24;font-family:'Mali','Sarabun',sans-serif;color:#fff5e6}
+  canvas#stage{position:fixed;inset:0;width:100%;height:100%;touch-action:none}
+  .panel{background:rgba(14,16,50,.78);backdrop-filter:blur(10px);border:1px solid rgba(255,214,150,.22);border-radius:1.5rem;padding:1.25rem}
+  .inp{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,214,150,.3);border-radius:.9rem;padding:.65rem .9rem;color:#fff;outline:none}
+  .inp:focus{border-color:#ffcf7a;box-shadow:0 0 0 3px rgba(255,207,122,.25)}
+  .btn{border-radius:999px;padding:.7rem 1.2rem;font-weight:600;background:linear-gradient(135deg,#ffb347,#ff6f91);color:#2a0f2a;transition:transform .15s}
+  .btn:active{transform:scale(.96)}
+  .btn2{border-radius:999px;padding:.7rem 1.2rem;font-weight:600;background:rgba(255,255,255,.12);border:1px solid rgba(255,214,150,.35)}
+  .btn:disabled{opacity:.5}
+  .opt{border-radius:1rem;border:2px solid transparent;background:rgba(255,255,255,.07);padding:.35rem;text-align:center;font-size:.8rem}
+  .opt.sel{border-color:#ffcf7a;background:rgba(255,207,122,.16)}
+  .chip{background:rgba(14,16,50,.7);border:1px solid rgba(255,214,150,.25);border-radius:999px;padding:.35rem .8rem;font-size:.85rem}
+  .hidden{display:none!important}
+  #ui{position:fixed;inset:0;pointer-events:none;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+  #ui>*{pointer-events:auto}
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+
+<div id="ui">
+  <!-- HUD -->
+  <div id="hud" class="hidden absolute top-0 left-0 right-0 flex items-start justify-between p-3" style="pointer-events:none">
+    <div class="flex gap-2 items-center flex-wrap" style="pointer-events:auto">
+      <span class="chip" id="roomChip"></span>
+      <button id="btnCopy" class="chip">คัดลอกลิงก์ชวนแฟน</button>
+      <button id="btnQR" class="chip">QR</button>
+      <button id="btnSky" class="chip">🏮 ปล่อยโคมคู่</button>
+      <button id="btnBump" class="chip">📱 แตะค้างซิงก์</button>
+    </div>
+    <div class="flex gap-2 flex-wrap justify-end" style="pointer-events:auto">
+      <button id="btnScene" class="chip text-lg" aria-label="เปลี่ยนบรรยากาศ">🌕</button>
+      <button id="btnMic" class="chip text-lg" style="opacity:.5" aria-label="เป่าลมดันกระทง">🎤</button>
+      <button id="btnMusic" class="chip text-lg" style="opacity:.5" aria-label="เพลงประกอบ">🎵</button>
+      <button id="btnMute" class="chip text-lg" aria-label="เปิดปิดเสียง">🔊</button>
+    </div>
+  </div>
+  <div id="status" class="hidden absolute left-0 right-0 top-14 text-center px-6 text-sm" style="pointer-events:none;text-shadow:0 1px 6px #000"></div>
+  <div id="bottom" class="hidden absolute bottom-0 left-0 right-0 p-4 flex flex-col items-center gap-2">
+    <div id="rxRow" class="hidden flex gap-2">
+      <button class="chip text-xl rx" data-e="❤️">❤️</button><button class="chip text-xl rx" data-e="🌸">🌸</button><button class="chip text-xl rx" data-e="✨">✨</button><button class="chip text-xl rx" data-e="😘">😘</button>
+    </div>
+    <button id="btnLight" class="btn hidden">🕯️ จุดเทียนพร้อมกัน</button>
+    <button id="btnReopen" class="btn2 hidden">💌 เปิดความในใจอีกครั้ง</button>
+    <button id="btnKeepsakes" class="btn2">📚 Wishlist · คูปอง · สมุดคู่รัก</button>
+  </div>
+
+  <!-- Lobby -->
+  <div id="lobby" class="absolute inset-0 flex items-center justify-center p-5">
+    <div class="panel w-full max-w-sm">
+      <h1 class="text-2xl font-semibold text-center">ลอยกระทงกับแฟน</h1>
+      <p class="text-center text-sm opacity-80 mb-4">ปล่อยกระทงคนละเครื่อง แล้วดันให้มาเจอกัน</p>
+      <label class="text-sm opacity-80">ชื่อเล่นของฉัน</label>
+      <input id="inName" class="inp mb-3" maxlength="14" placeholder="เช่น ปัน">
+      <button id="btnCreate" class="btn w-full">สร้างห้องใหม่</button>
+      <div class="text-center text-xs opacity-60 my-3">หรือเข้าร่วมห้องของแฟน</div>
+      <div class="flex gap-2">
+        <input id="inCode" class="inp text-center tracking-widest" inputmode="numeric" maxlength="4" placeholder="รหัส 4 หลัก">
+        <button id="btnJoin" class="btn2 whitespace-nowrap">เข้าห้อง</button>
+      </div>
+      <button id="btnDemo" class="btn2 w-full mt-3 text-sm">ลองเล่นคนเดียว (โหมดทดสอบ)</button>
+      <p id="lobbyMsg" class="text-center text-sm mt-3 text-pink-300 min-h-[1.2rem]"></p>
+      <p id="fbNote" class="text-center text-xs opacity-60"></p>
+    </div>
+  </div>
+
+  <!-- Setup -->
+  <div id="setup" class="hidden absolute inset-0 flex items-center justify-center p-4">
+    <div class="panel w-full max-w-sm overflow-auto" style="max-height:92vh">
+      <div class="font-semibold mb-2">เลือกกระทงของคุณ</div>
+      <div id="styleGrid" class="grid grid-cols-4 gap-2 mb-3"></div>
+      <div class="font-semibold mb-2">ของมงคลที่ซ่อนในกระทง</div>
+      <div id="charmGrid" class="grid grid-cols-3 gap-2 mb-3"></div>
+      <label class="text-sm opacity-80">คำอธิษฐาน (ทุกคนเห็นทันที)</label>
+      <input id="inWish" class="inp mb-3" maxlength="40" placeholder="ขอให้เรารักกันนานๆ">
+      <label class="text-sm opacity-80">ความในใจลับถึงแฟน (ล็อกไว้จนกระทงชนกัน)</label>
+      <textarea id="inSecret" class="inp mb-3" rows="3" maxlength="160" placeholder="สิ่งที่อยากบอกเธอ..."></textarea>
+      <label class="text-sm opacity-80">วันเกิดของฉัน (สีมงคล)</label>
+      <select id="inBirthday" class="inp mb-3"><option value="">เลือกวันเกิด</option><option>วันอาทิตย์</option><option>วันจันทร์</option><option>วันอังคาร</option><option>วันพุธ</option><option>วันพฤหัสบดี</option><option>วันศุกร์</option><option>วันเสาร์</option></select><div id="birthdayTip" class="text-xs opacity-75 mb-3">เลือกวันเกิดเพื่อดูโทนสีแนะนำ</div>
+      <div class="flex gap-2 mb-3"><input id="photoFlag" type="file" accept="image/*" class="inp text-xs"><button id="btnPhotoShape" type="button" class="btn2 whitespace-nowrap">💗 กรอบหัวใจ</button></div>
+      <label class="text-sm opacity-80">สิ่งที่อยากทำด้วยกันปีหน้า</label>
+      <div class="flex gap-2 mb-3"><input id="wishItem" class="inp" maxlength="60" placeholder="เช่น ไปเที่ยวทะเลด้วยกัน"><button id="btnWishAdd" class="btn2 whitespace-nowrap" type="button">เพิ่ม</button></div><div id="wishList" class="text-sm mb-3"></div>
+      <label class="text-sm opacity-80">คูปองรัก (เพิ่มเข้ากระทงได้)</label><div class="flex gap-2 mb-3"><select id="couponPick" class="inp"><option>คูปองงดงอน 1 ครั้ง</option><option>เลี้ยงชาบู 1 มื้อ</option><option>นวดไหล่ 15 นาที</option></select><button id="btnCouponAdd" class="btn2 whitespace-nowrap" type="button">🎟️ เพิ่ม</button></div>
+      <label class="text-sm opacity-80">สติกเกอร์ตกแต่ง (แตะกระทงเพื่อวาง)</label><div id="stickerTray" class="flex gap-2 mb-3"><button class="chip sticker">🪷</button><button class="chip sticker">🕯️</button><button class="chip sticker">💖</button><button class="chip sticker">⭐</button><button class="chip sticker">👑</button></div>
+      <button id="btnRelease" class="btn w-full">🪷 ปล่อยกระทงลงน้ำ</button>
+    </div>
+  </div>
+
+  <div id="qr" class="hidden absolute inset-0 flex items-center justify-center p-4" style="background:rgba(5,6,25,.6)">
+    <div class="panel text-center"><div class="mb-2 font-semibold">สแกนเพื่อเข้าห้อง</div>
+      <div id="qrBox" class="bg-white p-3 rounded-xl inline-block"></div>
+      <div class="mt-3"><button id="btnQRClose" class="btn2">ปิด</button></div></div>
+  </div>
+  <div id="extras" class="hidden absolute left-3 bottom-24 panel text-sm" style="max-width:260px;max-height:40vh;overflow:auto"><div class="font-semibold">💞 ของขวัญและความทรงจำ</div><div id="extrasBody" class="mt-2"></div><button id="btnExtrasClose" class="btn2 mt-2">ปิด</button></div>
+  <!-- Reveal -->
+  <div id="reveal" class="hidden absolute inset-0 flex items-center justify-center p-4" style="background:rgba(5,6,25,.6)">
+    <div class="panel w-full max-w-sm overflow-auto text-center" style="max-height:92vh">
+      <div class="text-xl font-semibold mb-1">💞 ปลดล็อกความในใจลับ</div>
+      <div id="revealBody" class="text-left space-y-3 my-3"></div>
+      <div class="flex gap-2 justify-center">
+        <button id="btnSave" class="btn">📸 บันทึกภาพความทรงจำ</button>
+        <button id="btnClose" class="btn2">ปิด</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+/* =====================================================================
+   ตั้งค่า Firebase (ทำครั้งเดียว)
+   1) เข้า https://console.firebase.google.com แล้วกด "Add project"
+   2) เมนูซ้าย Build > Realtime Database > Create Database (เลือกโหมด Test)
+   3) ไอคอนฟันเฟือง > Project settings > ส่วน "Your apps" กดไอคอน </> (Web) ตั้งชื่อแอป
+   4) คัดลอกค่า firebaseConfig ที่ได้ มาวางทับด้านล่างนี้ (ต้องมี databaseURL ด้วย)
+   ถ้าเว้นว่างไว้ เกมจะเข้า "โหมดทดสอบ" ให้เล่นคนเดียวกับแฟนจำลองโดยอัตโนมัติ
+   ===================================================================== */
+const firebaseConfig = {
+  apiKey: "AIzaSyB_2-loW87Ml-rP53Uaq9LBS_FroWEwiog",
+  authDomain: "katung-6970d.firebaseapp.com",
+  databaseURL: "https://katung-6970d-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "katung-6970d",
+  appId: "1:952888475922:web:b5d292e74da4c74fb0f3cb"
+};
+
+const $ = id => document.getElementById(id);
+const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+const show = (id,on=true) => $(id).classList.toggle('hidden',!on);
+const STYLES = ['ใบตองคลาสสิก','ดอกบัวชมพู','ขนมปังน้องหมี','มินิมอลหัวใจ'];
+const CHARMS = ['🪙 เหรียญทอง','💍 แหวนหัวใจ','🎟️ คูปองตามใจแฟน 1 วัน'];
+const FB_READY = !!(firebaseConfig.apiKey && firebaseConfig.databaseURL);
+
+/* ---------- Firebase wrapper ---------- */
+let FB = null;
+async function initFB(){
+  if(!FB_READY) return false;
+  try{
+    const A = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
+    const D = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js');
+    FB = {D, db: D.getDatabase(A.initializeApp(firebaseConfig))};
+    return true;
+  }catch(e){ console.warn('Firebase error',e); return false; }
+}
+const ref = p => FB.D.ref(FB.db,p);
+
+/* ---------- State ---------- */
+let demo=false, room=null, slot=0, collided=false, colliding=false, celeb=0, burstT=0, heartT=0;
+const pid = Math.random().toString(36).slice(2,9);
+const mk = s => ({name:'',style:0,charm:0,wish:'',secret:'',released:false,lit:false,x:s?.8:.2,y:s?.82:.74,vx:0,vy:0,slot:s,here:false});
+let me = mk(0), pa = mk(1); let bumpFlash=0;
+me.stickers=[]; pa.stickers=[]; me.coupons=[]; pa.coupons=[]; me.wishlist=[]; pa.wishlist=[]; me.photo=''; me.photoShape='heart'; let pendingSticker='';
+let selStyle=0, selCharm=0;
+const sync = o => { if(!demo && FB && room) FB.D.update(ref(`rooms/${room}/players/${pid}`),o); };
+
+/* ---------- Audio (Web Audio API) ---------- */
+let AC=null, muted=false;
+function ensureAudio(){
+  if(!AC){ try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch(e){} }
+  if(AC && AC.state==='suspended') AC.resume();
+}
+function noise(dur){
+  const b=AC.createBuffer(1,AC.sampleRate*dur,AC.sampleRate), d=b.getChannelData(0);
+  for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+  const s=AC.createBufferSource(); s.buffer=b; return s;
+}
+function sfxRipple(){
+  if(!AC||muted) return; const t=AC.currentTime;
+  const n=noise(.3), f=AC.createBiquadFilter(), g=AC.createGain();
+  f.type='bandpass'; f.Q.value=3; f.frequency.setValueAtTime(900,t); f.frequency.exponentialRampToValueAtTime(300,t+.25);
+  g.gain.setValueAtTime(.16,t); g.gain.exponentialRampToValueAtTime(.001,t+.28);
+  n.connect(f); f.connect(g); g.connect(AC.destination); n.start(t);
+  const o=AC.createOscillator(), og=AC.createGain();
+  o.frequency.setValueAtTime(520,t); o.frequency.exponentialRampToValueAtTime(170,t+.12);
+  og.gain.setValueAtTime(.1,t); og.gain.exponentialRampToValueAtTime(.001,t+.14);
+  o.connect(og); og.connect(AC.destination); o.start(t); o.stop(t+.15);
+}
+function sfxFirework(){
+  if(!AC||muted) return; const t=AC.currentTime;
+  const o=AC.createOscillator(), g=AC.createGain();
+  o.type='sine'; o.frequency.setValueAtTime(150,t); o.frequency.exponentialRampToValueAtTime(40,t+.3);
+  g.gain.setValueAtTime(.3,t); g.gain.exponentialRampToValueAtTime(.001,t+.35);
+  o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+.4);
+  const n=noise(.7), f=AC.createBiquadFilter(), ng=AC.createGain();
+  f.type='highpass'; f.frequency.value=2200;
+  ng.gain.setValueAtTime(.001,t); ng.gain.linearRampToValueAtTime(.22,t+.12); ng.gain.exponentialRampToValueAtTime(.001,t+.7);
+  n.connect(f); f.connect(ng); ng.connect(AC.destination); n.start(t);
+}
+function sfxChime(){
+  if(!AC||muted) return;
+  [784,1175,1568].forEach((fr,i)=>{
+    const t=AC.currentTime+i*.12, o=AC.createOscillator(), g=AC.createGain();
+    o.frequency.value=fr; g.gain.setValueAtTime(.001,t); g.gain.linearRampToValueAtTime(.12,t+.02); g.gain.exponentialRampToValueAtTime(.001,t+.5);
+    o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+.55);
+  });
+}
+
+/* ---------- Canvas & drawing ---------- */
+const cv=$('stage'), ctx=cv.getContext('2d');
+let W=0,H=0;
+function resize(){
+  const d=Math.min(2,devicePixelRatio||1); W=innerWidth; H=innerHeight;
+  cv.width=W*d; cv.height=H*d; ctx.setTransform(d,0,0,d,0,0);
+}
+addEventListener('resize',resize); resize();
+
+const stars=Array.from({length:90},()=>({x:Math.random(),y:Math.random()*.48,f:1+Math.random()*2,p:Math.random()*6,r:Math.random()*1.3+.3}));
+const flies=Array.from({length:22},()=>({x:Math.random(),y:.2+Math.random()*.65,p:Math.random()*6,sp:.3+Math.random()*.6}));
+let ripples=[], parts=[], hearts=[];
+
+function ell(c,x,y,rx,ry,col){ c.fillStyle=col; c.beginPath(); c.ellipse(x,y,rx,ry,0,0,Math.PI*2); c.fill(); }
+function heartPath(c,x,y,s){
+  c.beginPath(); c.moveTo(x,y+s*.3);
+  c.bezierCurveTo(x-s,y-s*.3,x-s*.5,y-s*1.1,x,y-s*.5);
+  c.bezierCurveTo(x+s*.5,y-s*1.1,x+s,y-s*.3,x,y+s*.3); c.closePath();
+}
+
+/* กระทง 4 แบบ: s = ขนาดรัศมี, flame = จุดเทียนแล้วหรือไม่ */
+function drawK(c,st,x,y,s,flame,t){
+  c.save(); c.translate(x,y);
+  ell(c,0,s*.3,s*1.15,s*.3,'rgba(0,0,0,.28)');
+  if(st===0){
+    ell(c,0,0,s*1.05,s*.38,'#2f7a32');
+    const a=[...Array(10).keys()].map(i=>i/10*Math.PI*2).sort((p,q)=>Math.sin(p)-Math.sin(q));
+    a.forEach((an,i)=>{
+      const px=Math.cos(an)*s*.85, py=Math.sin(an)*s*.3;
+      c.fillStyle=i%2?'#86cf70':'#5fae50';
+      c.beginPath(); c.moveTo(px-s*.17,py); c.lineTo(px*1.05,py-s*.55); c.lineTo(px+s*.17,py); c.fill();
+    });
+    ell(c,0,-s*.05,s*.45,s*.17,'#ffd54f'); ell(c,0,-s*.07,s*.22,s*.08,'#ff8f00');
+  } else if(st===1){
+    ell(c,0,0,s*1.05,s*.38,'#3b8f4a');
+    [[.8,'#f06292',.34],[.5,'#f8a5c2',.4]].forEach(([r,col,w],ring)=>{
+      const n=ring?6:8;
+      for(let i=0;i<n;i++){
+        const an=i/n*Math.PI*2+ring*.4, px=Math.cos(an)*s*r*.9, py=Math.sin(an)*s*r*.3-s*(.12+ring*.2);
+        c.save(); c.translate(px,py); c.rotate(Math.cos(an)*.5);
+        c.fillStyle=col; c.beginPath(); c.ellipse(0,-s*.25,s*w*.5,s*.42,0,0,Math.PI*2); c.fill();
+        c.restore();
+      }
+    });
+    ell(c,0,-s*.3,s*.2,s*.1,'#ffd54f');
+  } else if(st===2){
+    ell(c,0,s*.05,s*1.05,s*.38,'#c98a4d'); ell(c,0,-s*.02,s*1.0,s*.34,'#e8b77a');
+    ell(c,-s*.5,-s*.8,s*.2,s*.2,'#b9783f'); ell(c,s*.5,-s*.8,s*.2,s*.2,'#b9783f');
+    ell(c,-s*.5,-s*.78,s*.1,s*.1,'#f0c9a0'); ell(c,s*.5,-s*.78,s*.1,s*.1,'#f0c9a0');
+    ell(c,0,-s*.42,s*.62,s*.52,'#b9783f');
+    ell(c,0,-s*.28,s*.28,s*.2,'#f3d6b0');
+    ell(c,-s*.22,-s*.5,s*.06,s*.07,'#3a2418'); ell(c,s*.22,-s*.5,s*.06,s*.07,'#3a2418'); ell(c,0,-s*.32,s*.07,s*.05,'#3a2418');
+  } else {
+    ell(c,0,0,s*1.05,s*.38,'#fff0f3');
+    c.strokeStyle='#f06292'; c.lineWidth=s*.08; c.beginPath(); c.ellipse(0,0,s*.95,s*.33,0,0,Math.PI*2); c.stroke();
+    c.fillStyle='#ff5c8a'; heartPath(c,0,-s*.25,s*.62); c.fill();
+    c.fillStyle='rgba(255,255,255,.5)'; c.beginPath(); c.ellipse(-s*.22,-s*.5,s*.1,s*.06,-.6,0,Math.PI*2); c.fill();
+  }
+  // เทียน
+  const cp=[[0,-.25],[0,-.5],[.72,-.1],[.72,-.1]][st], cx=cp[0]*s, cy=cp[1]*s;
+  c.fillStyle='#fff3c4'; c.fillRect(cx-s*.07,cy-s*.5,s*.14,s*.5);
+  c.fillStyle='#4a3020'; c.fillRect(cx-s*.012,cy-s*.58,s*.024,s*.08);
+  if(flame){
+    const fl=1+Math.sin(t*14+x)*.08, fy=cy-s*.72;
+    const g=c.createRadialGradient(cx,fy,0,cx,fy,s*2.4);
+    g.addColorStop(0,'rgba(255,200,100,.55)'); g.addColorStop(1,'rgba(255,150,60,0)');
+    c.globalCompositeOperation='lighter'; c.fillStyle=g; c.beginPath(); c.arc(cx,fy,s*2.4,0,7); c.fill();
+    c.globalCompositeOperation='source-over';
+    c.fillStyle='#ff9d2e'; c.beginPath(); c.ellipse(cx,fy,s*.12*fl,s*.24*fl,0,0,7); c.fill();
+    c.fillStyle='#fff3b0'; c.beginPath(); c.ellipse(cx,fy+s*.05,s*.06,s*.13*fl,0,0,7); c.fill();
+  }
+  c.restore();
+}
+
+function ks(){ return Math.min(W*.09,40); }
+function label(text,x,y,size,col){
+  ctx.font=`600 ${size}px Mali,sans-serif`; ctx.textAlign='center';
+  const w=ctx.measureText(text).width+16;
+  ctx.fillStyle='rgba(10,12,40,.55)'; ctx.beginPath(); ctx.roundRect(x-w/2,y-size,w,size+8,10); ctx.fill();
+  ctx.fillStyle=col||'#fff5e6'; ctx.fillText(text,x,y);
+}
+
+function drawScene(t){
+  const hz=H*.5;
+  let g=ctx.createLinearGradient(0,0,0,hz);
+  g.addColorStop(0,'#070b24'); g.addColorStop(.6,'#20195a'); g.addColorStop(1,'#533079');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,hz);
+  stars.forEach(s=>{ ctx.fillStyle=`rgba(255,255,255,${.3+.7*Math.abs(Math.sin(t*s.f+s.p))})`; ctx.fillRect(s.x*W,s.y*H,s.r,s.r); });
+  const mx=W*.72, my=H*.17;
+  g=ctx.createRadialGradient(mx,my,10,mx,my,170); g.addColorStop(0,'rgba(255,240,200,.45)'); g.addColorStop(1,'rgba(255,240,200,0)');
+  ctx.fillStyle=g; ctx.fillRect(mx-180,my-180,360,360);
+  ell(ctx,mx,my,46,46,'#fff6d8'); ell(ctx,mx-12,my-8,9,9,'rgba(220,200,150,.35)'); ell(ctx,mx+14,my+12,6,6,'rgba(220,200,150,.3)');
+  // ฝั่งตรงข้าม
+  ctx.fillStyle='#120f33'; ctx.beginPath(); ctx.moveTo(0,hz);
+  for(let x=0;x<=W;x+=12) ctx.lineTo(x,hz-8-Math.sin(x*.02)*7-Math.sin(x*.05)*4);
+  ctx.lineTo(W,hz); ctx.fill();
+  // น้ำ
+  g=ctx.createLinearGradient(0,hz,0,H); g.addColorStop(0,'#2a2870'); g.addColorStop(1,'#080c2e');
+  ctx.fillStyle=g; ctx.fillRect(0,hz,W,H-hz);
+  // แสงจันทร์สะท้อนที่ขยับได้
+  for(let i=0;i<42;i++){
+    const y=hz+i*(H-hz)/42, w=(10+i*2.6)*(.6+.4*Math.sin(t*2+i)), off=Math.sin(t*1.5+i*.7)*6*(1+i/20);
+    ctx.fillStyle=`rgba(255,238,190,${Math.max(0,.5-i*.011)})`; ctx.fillRect(mx+off-w/2,y,w,2);
+  }
+  // คลื่น
+  ctx.strokeStyle='rgba(160,180,255,.14)'; ctx.lineWidth=1.5;
+  for(let k=0;k<7;k++){
+    const by=hz+(k+1)*(H-hz)/7; ctx.beginPath();
+    for(let x=0;x<=W;x+=10){ const y=by+Math.sin(x*.02+t*1.2+k)*(2+k*.8); x?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+    ctx.stroke();
+  }
+}
+
+function drawRipples(){
+  ripples.forEach(r=>{
+    ctx.strokeStyle=`rgba(200,220,255,${r.a*.7})`; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.ellipse(r.x,r.y,r.r,r.r*.38,0,0,7); ctx.stroke();
+    ctx.strokeStyle=`rgba(200,220,255,${r.a*.35})`;
+    ctx.beginPath(); ctx.ellipse(r.x,r.y,r.r*.6,r.r*.23,0,0,7); ctx.stroke();
+  });
+}
+function drawFlies(t){
+  ctx.globalCompositeOperation='lighter';
+  flies.forEach(f=>{
+    const x=(f.x+Math.sin(t*f.sp+f.p)*.05)*W, y=(f.y+Math.cos(t*f.sp*1.3+f.p)*.03)*H, a=.35+.65*Math.abs(Math.sin(t*1.6+f.p));
+    const g=ctx.createRadialGradient(x,y,0,x,y,9); g.addColorStop(0,`rgba(220,255,140,${a})`); g.addColorStop(1,'rgba(220,255,140,0)');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,9,0,7); ctx.fill();
+  });
+  ctx.globalCompositeOperation='source-over';
+}
+function drawFx(){
+  ctx.globalCompositeOperation='lighter';
+  parts.forEach(p=>{ ctx.fillStyle=p.col.replace('A',(p.life/p.max).toFixed(2)); ctx.beginPath(); ctx.arc(p.x,p.y,2.2,0,7); ctx.fill(); });
+  ctx.globalCompositeOperation='source-over';
+  hearts.forEach(h=>{ ctx.fillStyle=`rgba(255,100,140,${h.a})`; heartPath(ctx,h.x,h.y,h.s); ctx.fill(); });
+  ctx.font='28px sans-serif'; ctx.textAlign='center';
+  reacts.forEach(r=>{ if(r.t<0) return; const k=r.t/r.d; ctx.globalAlpha=1-k*k*k;
+    ctx.fillText(r.e,r.sx+(r.tx-r.sx)*k+Math.sin(k*9)*14,r.sy+(r.ty-r.sy)*k-Math.sin(k*Math.PI)*60); });
+  ctx.globalAlpha=1;
+}
+/* ===== ฟีเจอร์เพิ่มเติม: รีแอกชัน, ฉาก, ดาวตก, ไมค์, เพลง, เซียมซี ===== */
+let scene=0, meteors=[], reacts=[], fSeed=Date.now(), micAn=null, micBuf=null, musicStyle=-1, musicTimer=null, mStep=0, shakeOn=false, lastShake=0, skyLanterns=[], skyMode=false;
+const FORTUNES=['ปีนี้จะรักกันหวานชื่น แต่อย่าลืมพาแฟนไปกินชาบูนะ','เร็วๆ นี้จะมีทริปเล็กๆ ที่ทำให้ใจใกล้กันกว่าเดิม','คนหนึ่งจะเป็นฝ่ายง้อ อีกคนต้องใจอ่อนให้ไวนะ','ปีนี้มีเรื่องดีๆ รออยู่ ขอแค่ไปด้วยกัน','ของขวัญเล็กๆ ที่ไม่คาดคิดกำลังจะมาถึง','ความรักมั่นคงขึ้น ถ้าเล่าเรื่องในใจให้กันฟังบ่อยๆ','จะได้หัวเราะด้วยกันมากกว่าปีที่แล้วเท่าตัว','ลอยกระทงปีหน้า จะยังจับมือกันอยู่แบบนี้'];
+const FORTUNE_HTML='<div class="rounded-2xl p-3 text-center" style="background:rgba(255,207,122,.14)"><div id="fortuneTxt" class="mb-2">🎋 เซียมซีคู่รัก: เขย่ามือถือหรือกดปุ่มเพื่อเปิดคำทำนาย</div><button id="btnFortune" class="btn2 text-sm">🎲 เขย่าเซียมซี</button></div>';
+function spawnReact(p,e){
+  const to=p===me?pa:me, has=p!==me||pa.here, sx=p.x*W, sy=p.y*H-ks()*2;
+  const tx=has?to.x*W:sx, ty=has?to.y*H-ks()*2-20:sy-H*.25;
+  for(let i=0;i<3;i++) reacts.push({e,sx:sx+(Math.random()-.5)*20,sy,tx:tx+(Math.random()-.5)*40,ty,t:-i*.25,d:3});
+}
+function drawMeteors(t){
+  if(scene===1){ ctx.fillStyle='rgba(30,120,80,.14)'; ctx.fillRect(0,0,W,H); drawFlies(t*.6+9); }
+  if(scene===2){ ctx.fillStyle='rgba(10,10,60,.18)'; ctx.fillRect(0,0,W,H); }
+  meteors.forEach(m=>{
+    const g=ctx.createLinearGradient(m.x,m.y,m.x-m.vx*.25,m.y-m.vy*.25);
+    g.addColorStop(0,`rgba(255,255,255,${Math.min(1,m.life)})`); g.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.strokeStyle=g; ctx.lineWidth=2.5; ctx.beginPath(); ctx.moveTo(m.x,m.y); ctx.lineTo(m.x-m.vx*.25,m.y-m.vy*.25); ctx.stroke();
+  });
+  skyLanterns.forEach(l=>{ctx.globalAlpha=Math.min(1,l.life);ctx.font='30px sans-serif';ctx.textAlign='center';ctx.fillText('🏮',l.x,l.y);ctx.font='11px Mali,sans-serif';ctx.fillStyle='#ffe6a6';ctx.fillText(l.names,l.x,l.y+14);ctx.globalAlpha=1;});
+}
+function tapSky(px,py){
+  if(scene!==2) return;
+  const i=meteors.findIndex(m=>Math.hypot(m.x-px,m.y-py)<60);
+  if(i>=0){ meteors.splice(i,1); burst(px,py); sfxChime(); show('status',true); $('status').textContent='🌠 อธิษฐานกับดาวตกแล้ว ขอให้สมหวังนะ'; }
+}
+const hz=n=>440*Math.pow(2,(n-69)/12);
+function tone(f,d,type,v){
+  if(!AC||muted) return; const t=AC.currentTime, o=AC.createOscillator(), g=AC.createGain(), lp=AC.createBiquadFilter();
+  o.type=type; o.frequency.value=f; lp.type='lowpass'; lp.frequency.value=type==='sine'?900:2500;
+  g.gain.setValueAtTime(.001,t); g.gain.linearRampToValueAtTime(v,t+.02); g.gain.exponentialRampToValueAtTime(.001,t+d);
+  o.connect(lp); lp.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+d+.05);
+}
+function musicStep(){
+  mStep++;
+  if(musicStyle===0){ const sc=[62,64,67,69,72]; if(Math.random()<.85) tone(hz(sc[Math.floor(Math.random()*5)]+(Math.random()<.3?12:0)),.9,'triangle',.07); }
+  else if(musicStyle===1){ const ch=[[57,60,64,67],[53,57,60,64],[48,52,55,59],[55,59,62,65]][Math.floor(mStep/8)%4];
+    if(mStep%8===1) ch.forEach(n=>tone(hz(n),3.2,'sine',.05)); if(mStep%2===0) tone(hz(ch[(mStep/2)%4|0]+12),.6,'sine',.04); }
+  else { const ch=[[60,64,67],[55,59,62],[57,60,64],[53,57,60]][Math.floor(mStep/6)%4]; tone(hz(ch[mStep%3]),.7,'triangle',.07); }
+}
+function setMusic(s){
+  musicStyle=s; clearInterval(musicTimer);
+  if(s>=0){ ensureAudio(); mStep=0; musicTimer=setInterval(musicStep,[480,420,330][s]); }
+  $('btnMusic').textContent=s<0?'🎵':['🪕','☕','🎸'][s]; $('btnMusic').style.opacity=s<0?.5:1;
+}
+async function toggleMic(){
+  if(micAn){ micAn=null; $('btnMic').style.opacity=.5; return; }
+  try{
+    const st=await navigator.mediaDevices.getUserMedia({audio:true}); ensureAudio();
+    const src=AC.createMediaStreamSource(st); micAn=AC.createAnalyser(); micAn.fftSize=512; micBuf=new Uint8Array(512); src.connect(micAn);
+    $('btnMic').style.opacity=1; show('status',true); $('status').textContent='🎤 เป่าลมใส่จอเพื่อดันกระทงได้เลย';
+  }catch(e){ show('status',true); $('status').textContent='เปิดไมโครโฟนไม่ได้ ตรวจสิทธิ์ของเบราว์เซอร์อีกครั้ง'; }
+}
+function blow(dt){
+  micAn.getByteTimeDomainData(micBuf); let sum=0; for(const v of micBuf){ const d=(v-128)/128; sum+=d*d; }
+  const rms=Math.sqrt(sum/micBuf.length);
+  if(rms>.1){ const dir=pa.here?(Math.sign(pa.x-me.x)||1):(slot?-1:1); me.vx+=dir*Math.min(rms,.6)*500*dt; }
+}
+async function enableShake(){
+  if(shakeOn) return;
+  try{
+    if(window.DeviceMotionEvent&&DeviceMotionEvent.requestPermission){ if(await DeviceMotionEvent.requestPermission()!=='granted') return; }
+    addEventListener('devicemotion',e=>{
+      const a=e.accelerationIncludingGravity; if(!a) return;
+      if(Math.abs(a.x)+Math.abs(a.y)+Math.abs(a.z)>38 && Date.now()-lastShake>1500){ lastShake=Date.now(); revealFortune(); }
+    }); shakeOn=true;
+  }catch(e){}
+}
+function revealFortune(){
+  const el=$('fortuneTxt'); if(!el||$('reveal').classList.contains('hidden')) return;
+  el.textContent='🔮 '+FORTUNES[fSeed%FORTUNES.length]; sfxChime(); burst(W/2,H*.25);
+}
+function burst(x,y){
+  const hue=Math.floor(Math.random()*360), n=70;
+  for(let i=0;i<n;i++){
+    const an=i/n*Math.PI*2, sp=70+Math.random()*190;
+    parts.push({x,y,vx:Math.cos(an)*sp,vy:Math.sin(an)*sp,life:1.4,max:1.4,col:`hsla(${hue+Math.random()*40},95%,65%,A)`});
+  }
+}
+
+/* ---------- Update ---------- */
+let lastSend=0;
+function update(dt,now){
+  if(me.released){
+    if(micAn&&!collided) blow(dt);
+    me.x+=me.vx*dt/W; me.y+=me.vy*dt/H;
+    const k=Math.exp(-1.3*dt); me.vx*=k; me.vy*=k;
+    me.x=clamp(me.x,.06,.94); me.y=clamp(me.y,.56,.92);
+    if(now-lastSend>120 && (Math.abs(me.vx)+Math.abs(me.vy)>.5)){ lastSend=now; sync({x:+me.x.toFixed(4),y:+me.y.toFixed(4)}); }
+  }
+  if(pa.tx!=null){ pa.x+=(pa.tx-pa.x)*Math.min(1,dt*8); pa.y+=(pa.ty-pa.y)*Math.min(1,dt*8); }
+  if(demo && pa.released && pa.lit && me.lit && !collided){
+    const dx=me.x*W-pa.x*W, dy=me.y*H-pa.y*H, d=Math.hypot(dx,dy)||1;
+    pa.x+=dx/d*14*dt/W; pa.y+=dy/d*14*dt/H;
+  }
+  if(!collided && !colliding && me.released && pa.released && me.lit && pa.lit){
+    const d=Math.hypot((me.x-pa.x)*W,(me.y-pa.y)*H);
+    if(d<Math.max(56,ks()*1.9)){
+      colliding=true;
+      if(demo) boom(); else FB.D.set(ref(`rooms/${room}/collided`),Date.now());
+    }
+  }
+  ripples.forEach(r=>{ r.r+=70*dt; r.a-=dt*.9; }); ripples=ripples.filter(r=>r.a>0);
+  parts.forEach(p=>{ p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=110*dt; p.vx*=.985; p.life-=dt; }); parts=parts.filter(p=>p.life>0);
+  hearts.forEach(h=>{ h.y-=h.vy*dt; h.x+=Math.sin(h.y*.03)*20*dt; h.a-=dt*.22; }); hearts=hearts.filter(h=>h.a>0);
+  reacts.forEach(r=>r.t+=dt); reacts=reacts.filter(r=>r.t<r.d);
+  if(scene===2&&Math.random()<dt*.6) meteors.push({x:W*.1+Math.random()*W*.9,y:Math.random()*H*.2,vx:-260,vy:140,life:1.2});
+  meteors.forEach(m=>{ m.x+=m.vx*dt; m.y+=m.vy*dt; m.life-=dt; }); meteors=meteors.filter(m=>m.life>0);
+  skyLanterns.forEach(l=>{l.y-=28*dt;l.life-=dt*.025;}); skyLanterns=skyLanterns.filter(l=>l.life>0);
+  if(collided && celeb<9){
+    celeb+=dt; burstT-=dt; heartT-=dt;
+    if(burstT<=0){ burstT=.3+Math.random()*.3; burst(W*(.15+Math.random()*.7),H*(.08+Math.random()*.3)); sfxFirework(); }
+    if(heartT<=0){ heartT=.14; hearts.push({x:(me.x+pa.x)/2*W+(Math.random()-.5)*60,y:(me.y+pa.y)/2*H,s:10+Math.random()*16,vy:60+Math.random()*60,a:1}); }
+  }
+}
+
+/* ---------- Render ---------- */
+function drawPlayer(p,t,isMe){
+  const s=ks(), x=p.x*W, y=p.y*H+Math.sin(t*2+p.slot*2)*2, flame=me.lit&&pa.lit;
+  if(flame){
+    const g=ctx.createRadialGradient(x,y,0,x,y,s*3); g.addColorStop(0,'rgba(255,190,90,.28)'); g.addColorStop(1,'rgba(255,190,90,0)');
+    ctx.fillStyle=g; ctx.fillRect(x-s*3,y-s*3,s*6,s*6);
+  }
+  drawK(ctx,p.style,x,y,s,flame,t);
+  (p.stickers||[]).forEach((v,i)=>{ ctx.font=`${Math.max(14,s*.55)}px sans-serif`; ctx.textAlign='center'; ctx.fillText(v.e,x+(v.dx||0)*s,y+(v.dy||-.5)*s); });
+  if(p.photoImg?.complete){ ctx.save();ctx.beginPath(); if(p.photoShape==='circle')ctx.arc(x,y-s*1.5,s*.35,0,Math.PI*2); else heartPath(ctx,x,y-s*1.5,s*.35);ctx.clip();ctx.drawImage(p.photoImg,x-s*.35,y-s*1.85,s*.7,s*.7);ctx.restore(); }
+  label(p.wish,x,y-s*2.6,Math.max(11,s*.36),'#ffe9b8');
+  label(p.name+(isMe?' (ฉัน)':''),x,y+s*1.1,Math.max(11,s*.34),'#fff');
+}
+function render(t){
+  drawScene(t); drawRipples();
+  const list=[]; if(me.released) list.push([me,true]); if(pa.here&&pa.released) list.push([pa,false]);
+  list.sort((a,b)=>a[0].y-b[0].y).forEach(([p,m])=>drawPlayer(p,t,m));
+  drawFlies(t); drawMeteors(t); drawFx();
+}
+let last=performance.now(), tAcc=0;
+(function loop(now){
+  const dt=Math.min(.05,(now-last)/1000); last=now; tAcc+=dt;
+  update(dt,now); render(tAcc); requestAnimationFrame(loop);
+})(last);
+
+/* ---------- Interaction: แตะ/ปัดผิวน้ำ ---------- */
+let down=false, lastRip=0;
+function addRipple(px,py){
+  if(!me.released||collided||py<H*.45) return;
+  const now=performance.now(); if(now-lastRip<35) return; lastRip=now;
+  ripples.push({x:px,y:py,r:6,a:1}); sfxRipple();
+  const kx=me.x*W, ky=me.y*H, dx=kx-px, dy=ky-py, d=Math.hypot(dx,dy)||1, R=170;
+  if(d<R){
+    const str=(1-d/R)*140, bias=pa.here?Math.sign(pa.x-me.x)*.45:0;
+    me.vx+=dx/d*str+bias*str; me.vy+=dy/d*str*.5+((pa.here?pa.y-me.y:0)>0?.1:-.1)*str*.5;
+  }
+}
+cv.addEventListener('pointerdown',e=>{ ensureAudio(); down=true; tapSky(e.clientX,e.clientY); addRipple(e.clientX,e.clientY); });
+cv.addEventListener('pointermove',e=>{ if(down) addRipple(e.clientX,e.clientY); });
+addEventListener('pointerup',()=>down=false);
+addEventListener('pointerdown',ensureAudio,{once:true});
+
+/* ---------- UI: setup grids ---------- */
+STYLES.forEach((n,i)=>{
+  const b=document.createElement('button'); b.className='opt'+(i===0?' sel':''); b.innerHTML=`<canvas width="84" height="72"></canvas><div>${n}</div>`;
+  drawK(b.querySelector('canvas').getContext('2d'),i,42,46,22,false,0);
+  b.onclick=()=>{ selStyle=i; [...$('styleGrid').children].forEach((c,j)=>c.classList.toggle('sel',j===i)); };
+  $('styleGrid').appendChild(b);
+});
+CHARMS.forEach((n,i)=>{
+  const b=document.createElement('button'); b.className='opt'+(i===0?' sel':''); b.innerHTML=`<div class="py-2">${n}</div>`;
+  b.onclick=()=>{ selCharm=i; [...$('charmGrid').children].forEach((c,j)=>c.classList.toggle('sel',j===i)); };
+  $('charmGrid').appendChild(b);
+});
+
+/* ---------- Status / UI refresh ---------- */
+function refreshUI(){
+  const st=$('status'), bl=$('btnLight');
+  bl.classList.add('hidden');
+  if(!me.released){ st.textContent=''; return; }
+  show('status',true);
+  if(collided){ st.textContent='กระทงของเรามาเจอกันแล้ว 💞'; show('btnReopen',true); return; }
+  if(!pa.here) st.textContent='รอแฟนเข้าห้อง... กด "คัดลอกลิงก์ชวนแฟน" แล้วส่งให้ได้เลย';
+  else if(!pa.released) st.textContent=`รอ ${pa.name} ปล่อยกระทงลงน้ำ...`;
+  else if(!(me.lit&&pa.lit)){
+    bl.classList.remove('hidden'); bl.disabled=me.lit;
+    st.textContent=me.lit?`รอ ${pa.name} จุดเทียน...`:'ปล่อยครบทั้งคู่แล้ว! กดจุดเทียนพร้อมกันได้เลย';
+    bl.textContent=me.lit?'🕯️ จุดแล้ว รอแฟน...':'🕯️ จุดเทียนพร้อมกัน';
+  } else st.textContent='แตะหรือปัดบนผิวน้ำ เพื่อดันกระทงให้ลอยเข้าหากัน';
+}
+
+/* ---------- Room flow ---------- */
+function enterSetup(){
+  show('lobby',false); show('setup',true); show('hud',true); show('bottom',true);
+  $('roomChip').textContent=demo?'โหมดทดสอบ':'ห้อง '+room;
+  show('btnCopy',!demo); show('btnQR',!demo);
+  me.slot=slot; me.x=slot?.8:.2; me.y=slot?.82:.74; pa.slot=slot?0:1;
+  history.replaceState(null,'',demo?location.pathname:`?room=${room}`);
+}
+function listen(){
+  FB.D.onValue(ref(`rooms/${room}/players`),s=>{
+    const v=s.val()||{}, k=Object.keys(v).find(k=>k!==pid);
+    if(k){
+      const o=v[k]; pa.here=true; if(o.photo && (!pa.photoImg||pa.photoImg.src!==o.photo)){pa.photoImg=new Image();pa.photoImg.src=o.photo;}
+      Object.assign(pa,{name:o.name||'แฟน',style:o.style||0,charm:o.charm||0,wish:o.wish||'',secret:o.secret||'',released:!!o.released,lit:!!o.lit,slot:o.slot??pa.slot,stickers:o.stickers||[],coupons:o.coupons||[],wishlist:o.wishlist||[],photo:o.photo||'',photoShape:o.photoShape||'heart'});
+      if(pa.tx==null && o.x!=null){ pa.x=o.x; pa.y=o.y; }
+      if(o.x!=null){ pa.tx=o.x; pa.ty=o.y; }
+      if(o.react && o.react.t!==pa.rt){ const first=pa.rt==null; pa.rt=o.react.t; if(!first||Date.now()-o.react.t<5000) spawnReact(pa,o.react.e); }
+      if(o.bump && o.bump!==pa.bump){pa.bump=o.bump;if(Date.now()-o.bump<1800){bumpFlash=1;burst(W/2,H*.55);sfxChime();}}
+    } else pa.here=false;
+    refreshUI();
+  });
+  FB.D.onValue(ref(`rooms/${room}/collided`),s=>{ if(s.val()){ fSeed=+s.val()||fSeed; boom(); } });
+}
+function needName(){
+  const n=$('inName').value.trim();
+  if(!n){ $('lobbyMsg').textContent='กรอกชื่อเล่นก่อนนะ'; return null; }
+  me.name=n; return n;
+}
+$('btnCreate').onclick=async()=>{
+  ensureAudio(); if(!needName()) return;
+  if(!FB){ $('lobbyMsg').textContent='ยังไม่ได้ตั้งค่า Firebase ลองเล่นโหมดทดสอบแทนได้เลย'; return; }
+  let code; 
+  for(let i=0;i<10;i++){
+    code=String(Math.floor(1000+Math.random()*9000));
+    if(!(await FB.D.get(ref(`rooms/${code}`))).exists()) break;
+  }
+  room=code; slot=0; demo=false;
+  await FB.D.set(ref(`rooms/${room}`),{created:Date.now()});
+  enterSetup(); listen();
+};
+$('btnJoin').onclick=async()=>{
+  ensureAudio(); if(!needName()) return;
+  const code=$('inCode').value.trim();
+  if(!/^\d{4}$/.test(code)){ $('lobbyMsg').textContent='ใส่รหัสห้อง 4 หลัก'; return; }
+  if(!FB){ $('lobbyMsg').textContent='ยังไม่ได้ตั้งค่า Firebase'; return; }
+  const snap=await FB.D.get(ref(`rooms/${code}`));
+  if(!snap.exists()){ $('lobbyMsg').textContent='ไม่พบห้องนี้ ตรวจรหัสอีกครั้ง'; return; }
+  const ps=snap.val().players||{}, others=Object.values(ps);
+  if(others.length>=2){ $('lobbyMsg').textContent='ห้องนี้เต็มแล้ว'; return; }
+  room=code; demo=false; slot=others.length&&others[0].slot===0?1:0;
+  enterSetup(); listen();
+};
+$('btnDemo').onclick=()=>{
+  ensureAudio(); if(!needName()) return;
+  demo=true; room='DEMO'; slot=0; enterSetup();
+  Object.assign(pa,{here:true,name:'แฟน (จำลอง)',style:1,charm:1,wish:'ขอให้เรารักกันนานๆ',secret:'ขอบคุณที่อยู่ข้างกันเสมอนะ รักเธอที่สุดเลย'});
+};
+$('btnCopy').onclick=async()=>{
+  const url=location.origin+location.pathname+'?room='+room;
+  try{ await navigator.clipboard.writeText(url); $('btnCopy').textContent='คัดลอกแล้ว ✓'; }
+  catch(e){ prompt('คัดลอกลิงก์นี้ส่งให้แฟน',url); }
+  setTimeout(()=>$('btnCopy').textContent='คัดลอกลิงก์ชวนแฟน',1800);
+};
+$('btnMute').onclick=()=>{ muted=!muted; $('btnMute').textContent=muted?'🔇':'🔊'; };
+$('btnScene').onclick=()=>{ scene=(scene+1)%3; $('btnScene').textContent=['🌕','🪰','🌠'][scene]; meteors=[]; };
+$('btnSky').onclick=()=>{ skyMode=!skyMode; if(skyMode){ skyLanterns.push({x:W*(.48+Math.random()*.08),y:H*.8,names:`${me.name} ❤ ${pa.name}`,life:1}); burst(W/2,H*.7); sfxChime(); $('btnSky').textContent='✨ โคมลอยแล้ว'; setTimeout(()=>{$('btnSky').textContent='🏮 ปล่อยโคมคู่';skyMode=false;},3500); } };
+$('btnBump').onpointerdown=()=>{if(!collided)return;window.bumpTimer=setTimeout(()=>{bumpFlash=1;burst(W/2,H*.5);sfxChime();sync({bump:Date.now()});$('btnBump').textContent='💖 เชื่อมแสงแล้ว';setTimeout(()=>$('btnBump').textContent='📱 แตะค้างซิงก์',1800);},1200);};
+$('btnBump').onpointerup=$('btnBump').onpointerleave=()=>clearTimeout(window.bumpTimer);
+$('inBirthday').onchange=()=>{const colors={'วันอาทิตย์':'แดง · ส้ม','วันจันทร์':'เหลือง · ครีม','วันอังคาร':'ชมพู · ม่วง','วันพุธ':'เขียว · น้ำตาล','วันพฤหัสบดี':'ส้ม · ทอง','วันศุกร์':'ฟ้า · น้ำเงิน','วันเสาร์':'ม่วง · ดำ'};$('birthdayTip').textContent='สีแนะนำ: '+(colors[$('inBirthday').value]||'เลือกวันเกิดเพื่อดูโทนสีแนะนำ')+' เติมดอกไม้ให้กระทงคู่';};$('btnMusic').onclick=()=>{ ensureAudio(); setMusic(musicStyle>=2?-1:musicStyle+1); };
+$('btnMic').onclick=toggleMic;
+document.querySelectorAll('.rx').forEach(b=>b.onclick=()=>{ ensureAudio(); const e=b.dataset.e; spawnReact(me,e); sfxChime(); sync({react:{e,t:Date.now()}}); });
+$('btnQR').onclick=()=>{ $('qrBox').innerHTML=''; if(window.QRCode) new QRCode($('qrBox'),{text:location.origin+location.pathname+'?room='+room,width:200,height:200}); show('qr',true); };
+$('btnQRClose').onclick=()=>show('qr',false);
+$('btnPhotoShape').onclick=()=>{me.photoShape=me.photoShape==='heart'?'circle':'heart';$('btnPhotoShape').textContent=me.photoShape==='heart'?'💗 กรอบหัวใจ':'⚪ กรอบวงกลม';};
+$('photoFlag').onchange=e=>{const f=e.target.files?.[0];if(!f)return;if(f.size>2_000_000){alert('เลือกรูปขนาดไม่เกิน 2 MB');e.target.value='';return;}const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=180;c.height=180;const z=Math.min(im.width,im.height),x=(im.width-z)/2,y=(im.height-z)/2;c.getContext('2d').drawImage(im,x,y,z,z,0,0,180,180);me.photo=c.toDataURL('image/jpeg',.72);me.photoImg=new Image();me.photoImg.src=me.photo;};im.src=r.result;};r.readAsDataURL(f);};
+function renderLists(){const l=$('wishList');l.innerHTML=(me.wishlist||[]).map((v,i)=>`<div><label><input type="checkbox" ${v.done?'checked':''} data-w="${i}"> ${esc(v.text)}</label></div>`).join('')||'<span class="opacity-60">ยังไม่มีรายการ</span>';l.querySelectorAll('[data-w]').forEach(c=>c.onchange=()=>{me.wishlist[+c.dataset.w].done=c.checked;sync({wishlist:me.wishlist});});}
+$('btnWishAdd').onclick=()=>{const text=$('wishItem').value.trim();if(!text)return;me.wishlist.push({text,done:false});$('wishItem').value='';renderLists();};
+$('btnCouponAdd').onclick=()=>{me.coupons.push({text:$('couponPick').value,used:false});};
+document.querySelectorAll('.sticker').forEach(b=>b.onclick=()=>{pendingSticker=b.textContent;});
+cv.addEventListener('pointerup',e=>{if(!pendingSticker||!me.released)return;const dx=(e.clientX/W-me.x)*2,dy=(e.clientY/H-me.y);if(Math.abs(dx)<1.5&&Math.abs(dy)<1.3){me.stickers.push({e:pendingSticker,dx,dy});sync({stickers:me.stickers});pendingSticker='';}});
+$('btnKeepsakes').onclick=()=>{const all=[...(me.coupons||[]).map((v,i)=>`<div>🎟️ ${esc(v.text)} ${v.used?'✓ ใช้แล้ว':`<button class="chip" data-c="${i}">ใช้สิทธิ์</button>`}</div>`),...(pa.coupons||[]).map(v=>`<div>💝 ${esc(v.text)} (ของแฟน)</div>`),...(me.wishlist||[]).map(v=>`<div>${v.done?'✅':'▫️'} ${esc(v.text)}</div>`)];const key=`loy-history-${room||'local'}`;let hist=JSON.parse(localStorage.getItem(key)||'[]');if(collided&&!hist.some(v=>v.day===new Date().toDateString())){hist.push({day:new Date().toDateString(),wish:me.wish});localStorage.setItem(key,JSON.stringify(hist));} $('extrasBody').innerHTML=`<div>ลอยด้วยกันแล้ว ${hist.length} ครั้งบนเครื่องนี้</div><div class="my-2">คำอธิษฐาน: ${esc(me.wish||'—')}</div>${all.join('')||'ยังไม่มีของขวัญ'}<div class="mt-2">บันทึกย้อนหลัง: ${hist.map(v=>esc(v.day)+' · '+esc(v.wish)).join('<br>')}</div>`;show('extras',true);$('extrasBody').querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{me.coupons[+b.dataset.c].used=true;sync({coupons:me.coupons});$('extrasBody').innerHTML+=' <div>ส่งสัญญาณให้แฟนแล้ว 💌</div>';});};
+$('btnExtrasClose').onclick=()=>show('extras',false);
+
+$('btnRelease').onclick=()=>{
+  ensureAudio();
+  Object.assign(me,{style:selStyle,charm:selCharm,wish:$('inWish').value.trim()||'ขอให้เรารักกันนานๆ',secret:$('inSecret').value.trim()||'รักเธอนะ',released:true});
+  sync({name:me.name,style:me.style,charm:me.charm,wish:me.wish,secret:me.secret,slot,x:me.x,y:me.y,released:true,lit:false,stickers:me.stickers,coupons:me.coupons,wishlist:me.wishlist,photo:me.photo,photoShape:me.photoShape,birthday:$('inBirthday').value});
+  show('setup',false); show('rxRow',true); sfxRipple();
+  ripples.push({x:me.x*W,y:me.y*H,r:6,a:1});
+  if(demo) setTimeout(()=>{ pa.released=true; pa.x=.8; pa.y=.82; refreshUI(); },900);
+  refreshUI();
+};
+$('btnLight').onclick=()=>{
+  ensureAudio(); me.lit=true; sync({lit:true}); sfxChime();
+  if(demo) setTimeout(()=>{ pa.lit=true; sfxChime(); refreshUI(); },700);
+  refreshUI();
+};
+
+/* ---------- Easter egg: กระทงชนกัน ---------- */
+function boom(){
+  if(collided) return; collided=true; celeb=0; burstT=0; ensureAudio();
+  burst((me.x+pa.x)/2*W,(me.y+pa.y)/2*H*.8); sfxFirework();
+  setTimeout(showReveal,2600); refreshUI();
+}
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function card(from,to,p){
+  return `<div class="rounded-2xl p-3" style="background:rgba(255,255,255,.08)">
+    <div class="text-sm opacity-80">💌 ${esc(from)} เขียนถึง ${esc(to)}</div>
+    <div class="my-1">${esc(p.secret)}</div>
+    <div class="text-sm" style="color:#ffd98a">ของมงคลที่ซ่อนไว้: ${CHARMS[p.charm]||''}</div></div>`;
+}
+function showReveal(){
+  $('revealBody').innerHTML=card(pa.name,me.name,pa)+card(me.name,pa.name,me)+FORTUNE_HTML;
+  $('btnFortune').onclick=()=>{ ensureAudio(); enableShake(); revealFortune(); };
+  show('reveal',true);
+}
+$('btnClose').onclick=()=>show('reveal',false);
+$('btnReopen').onclick=showReveal;
+
+/* ---------- Memory Polaroid ---------- */
+function wrap(c,text,x,y,maxW,lh,maxLines){
+  const chars=[...text]; let line='', n=0;
+  for(const ch of chars){
+    if(c.measureText(line+ch).width>maxW){ c.fillText(line,x,y); y+=lh; line=ch; if(++n>=maxLines-1) break; }
+    else line+=ch;
+  }
+  const rest=chars.slice(chars.indexOf(line[0])).length; // กันบรรทัดสุดท้ายยาวเกิน
+  while(c.measureText(line).width>maxW && line.length>1) line=line.slice(0,-1);
+  c.fillText(line,x,y);
+}
+async function savePolaroid(){
+  try{ await document.fonts.load('600 40px Mali'); }catch(e){}
+  const PW=900, PH=1150, c=document.createElement('canvas'); c.width=PW; c.height=PH;
+  const x=c.getContext('2d');
+  x.fillStyle='#fbf6ea'; x.fillRect(0,0,PW,PH);
+  x.strokeStyle='rgba(0,0,0,.08)'; x.lineWidth=4; x.strokeRect(2,2,PW-4,PH-4);
+  const px=60,py=60,pw=780,ph=780;
+  x.save(); x.beginPath(); x.rect(px,py,pw,ph); x.clip();
+  let g=x.createLinearGradient(0,py,0,py+ph*.5); g.addColorStop(0,'#070b24'); g.addColorStop(.6,'#20195a'); g.addColorStop(1,'#533079');
+  x.fillStyle=g; x.fillRect(px,py,pw,ph*.55);
+  for(let i=0;i<70;i++){ x.fillStyle=`rgba(255,255,255,${.3+Math.random()*.6})`; x.fillRect(px+Math.random()*pw,py+Math.random()*ph*.5,2,2); }
+  ell(x,px+pw*.74,py+130,50,50,'#fff6d8');
+  g=x.createLinearGradient(0,py+ph*.5,0,py+ph); g.addColorStop(0,'#2a2870'); g.addColorStop(1,'#080c2e');
+  x.fillStyle=g; x.fillRect(px,py+ph*.5,pw,ph*.5);
+  for(let i=0;i<30;i++){ x.fillStyle=`rgba(255,238,190,${.4-i*.011})`; const w=14+i*3; x.fillRect(px+pw*.74-w/2,py+ph*.5+i*13,w,3); }
+  x.globalCompositeOperation='lighter';
+  const gl=x.createRadialGradient(px+pw/2,py+ph*.68,0,px+pw/2,py+ph*.68,300); gl.addColorStop(0,'rgba(255,190,90,.35)'); gl.addColorStop(1,'rgba(255,190,90,0)');
+  x.fillStyle=gl; x.fillRect(px,py,pw,ph); x.globalCompositeOperation='source-over';
+  drawK(x,me.slot?pa.style:me.style,px+pw*.34,py+ph*.68,78,true,1);
+  drawK(x,me.slot?me.style:pa.style,px+pw*.66,py+ph*.68,78,true,2);
+  x.fillStyle='rgba(255,100,140,.9)'; heartPath(x,px+pw/2,py+ph*.42,34); x.fill();
+  x.fillStyle='rgba(255,100,140,.6)'; heartPath(x,px+pw/2-70,py+ph*.33,18); x.fill(); heartPath(x,px+pw/2+66,py+ph*.3,22); x.fill();
+  x.restore();
+  const left=me.slot?pa:me, right=me.slot?me:pa;
+  x.textAlign='center'; x.fillStyle='#3a2a2a';
+  x.font='600 52px Mali,sans-serif'; x.fillText(`${left.name} ❤ ${right.name}`,PW/2,PH-215);
+  x.font='400 30px Mali,sans-serif'; x.fillStyle='#7a5a4a';
+  x.fillText(new Date().toLocaleDateString('th-TH',{day:'numeric',month:'long',year:'numeric'})+' • ลอยกระทง',PW/2,PH-165);
+  x.font='400 28px Mali,sans-serif'; x.fillStyle='#4a3a3a';
+  wrap(x,`${left.name}: ${left.wish}`,PW/2,PH-110,760,36,1);
+  wrap(x,`${right.name}: ${right.wish}`,PW/2,PH-66,760,36,1);
+  c.toBlob(b=>{
+    const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='loy-krathong-memory.png';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  },'image/png');
+}
+$('btnSave').onclick=savePolaroid;
+
+/* ---------- Boot ---------- */
+(async()=>{
+  const ok=await initFB();
+  $('fbNote').textContent=ok?'':'ยังไม่ได้ใส่ Firebase Config: เล่นได้เฉพาะโหมดทดสอบ';
+  const r=new URLSearchParams(location.search).get('room');
+  if(r) $('inCode').value=r.replace(/\D/g,'').slice(0,4);
+})();
+</script>
+</body>
+</html>
