@@ -25,10 +25,27 @@
   .cute-title{background:linear-gradient(90deg,#ffe2a7,#ffacd0,#ddc2ff);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 5px 25px rgba(255,154,205,.14)}
   .soft-heart{position:absolute;pointer-events:none;color:#ffadd0;opacity:.18;font-size:1.5rem;animation:heartFloat 5s ease-in-out infinite}
   @keyframes heartFloat{50%{transform:translateY(-9px) rotate(8deg);opacity:.3}}
+  .setup-card{max-height:min(88dvh,760px);overflow:auto;padding:1.2rem 1.3rem 1rem!important;border-radius:1.7rem!important;scrollbar-width:thin;scrollbar-color:rgba(255,194,213,.4) transparent}
+  .setup-top{display:flex;justify-content:space-between;align-items:center;font-size:.75rem;color:#dcbcdc}.setup-kicker{letter-spacing:.08em;color:#ffd5ac}.setup-step{color:#ffd19e;font-weight:600}
+  .setup-progress{height:4px;background:#ffffff19;border-radius:9px;margin:.55rem 0 1.15rem;overflow:hidden}.setup-progress i{display:block;width:25%;height:100%;border-radius:9px;background:linear-gradient(90deg,#ffcb83,#f6a3c9);transition:width .3s}
+  .setup-head{display:flex;align-items:center;gap:.75rem;margin-bottom:1.1rem}.setup-emoji{width:2.8rem;height:2.8rem;border-radius:1rem;display:grid;place-items:center;background:linear-gradient(145deg,#ffda9d35,#f7a7d82c);font-size:1.45rem}.setup-head h2{font-size:1.15rem;font-weight:600;color:#fff1e9}.setup-head p{font-size:.78rem;color:#cfbad2;margin-top:.1rem}
+  .wizard-step{display:none;min-height:260px;animation:stepIn .25s ease}.wizard-step.active{display:block}@keyframes stepIn{from{opacity:.45;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+  .setup-label{display:block;font-weight:600;font-size:.9rem;color:#ffe4df;margin:0 0 .55rem}.setup-label small{display:block;color:#cfbdd5;font-size:.72rem;font-weight:400;margin-top:.1rem}.setup-card .inp{font-size:16px}.setup-card textarea{resize:vertical}.field-space{height:1.25rem}.step-note{font-size:.74rem;color:#d0bad3;margin:.55rem 0 0}.photo-row,.inline-form{display:flex;gap:.5rem;align-items:center}.inline-form .inp{min-width:0}.sticker-tray{display:flex;gap:.55rem;flex-wrap:wrap}.sticker-tray .chip{min-width:46px;min-height:46px;font-size:1.2rem}
+  .finish-note{display:flex;gap:.75rem;align-items:center;margin-top:2.3rem;padding:.85rem;border-radius:1rem;background:#ffda9d12;border:1px solid #ffda9d2b}.finish-note>span{font-size:1.5rem}.finish-note strong,.finish-note small{display:block}.finish-note strong{font-size:.85rem}.finish-note small{font-size:.7rem;color:#d2bfd6;margin-top:.15rem}.wizard-nav{position:sticky;bottom:-1rem;margin-top:1.2rem;padding:.75rem 0 .15rem;background:linear-gradient(0deg,rgba(29,21,57,1) 75%,rgba(29,21,57,0));display:flex;align-items:center;justify-content:space-between;gap:.6rem}.wizard-nav .btn,.wizard-nav .btn2{padding:.65rem 1rem;font-size:.85rem;min-height:44px}.wizard-nav .btn{white-space:nowrap}.wizard-nav .btn2:disabled{opacity:.35}.nav-dots{display:flex;gap:5px}.nav-dots i{height:6px;width:6px;border-radius:9px;background:#ffffff45}.nav-dots i.on{width:18px;background:#ffd18e}
+  #btnMusic{opacity:1!important}
   .hidden{display:none!important}
   #ui{position:fixed;inset:0;pointer-events:none;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
   #ui>*{pointer-events:auto}
   @media(max-width:700px){
+    #setup{padding: max(.55rem,env(safe-area-inset-top)) .65rem max(.55rem,env(safe-area-inset-bottom));align-items:center}
+    #setup .setup-card{max-height:88dvh!important;padding:1rem 1rem .8rem!important;border-radius:1.45rem!important}
+    #setup .wizard-step{min-height:230px}
+    #setup .wizard-nav{bottom:-.8rem}
+    #setup .grid-cols-4{grid-template-columns:repeat(2,minmax(0,1fr))}
+    #setup .opt{min-height:78px}
+    #setup .photo-row{align-items:stretch}
+    #setup .photo-row .inp{min-width:0}
+    #setup .photo-row .btn2{padding:.55rem .7rem;font-size:.78rem}
     #hud{padding:calc(env(safe-area-inset-top) + .45rem) .65rem .4rem;gap:.45rem;flex-direction:column;align-items:stretch;background:linear-gradient(180deg,rgba(7,8,31,.62),transparent)}
     #hud>div{gap:.35rem;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
     #hud>div::-webkit-scrollbar{display:none}
@@ -65,7 +82,7 @@
     <div class="flex gap-2 flex-wrap justify-end" style="pointer-events:auto">
       <button id="btnScene" class="chip text-lg" aria-label="เปลี่ยนบรรยากาศ">🌕</button>
       <button id="btnMic" class="chip text-lg" style="opacity:.5" aria-label="เป่าลมดันกระทง">🎤</button>
-      <button id="btnMusic" class="chip text-lg" style="opacity:.5" aria-label="เพลงประกอบ">🎵</button>
+      <button id="btnMusic" class="chip text-lg" style="opacity:.5" aria-label="เพลงคลอชิล ๆ" title="เพลงคลอชิล ๆ · แตะเปลี่ยนแนว">♫</button>
       <button id="btnMute" class="chip text-lg" aria-label="เปิดปิดเสียง">🔊</button>
     </div>
   </div>
@@ -102,23 +119,15 @@
 
   <!-- Setup -->
   <div id="setup" class="hidden absolute inset-0 flex items-center justify-center p-4">
-    <div class="panel w-full max-w-sm overflow-auto" style="max-height:92vh">
-      <div class="font-semibold mb-2">เลือกกระทงของคุณ</div>
-      <div id="styleGrid" class="grid grid-cols-4 gap-2 mb-3"></div>
-      <div class="font-semibold mb-2">ของมงคลที่ซ่อนในกระทง</div>
-      <div id="charmGrid" class="grid grid-cols-3 gap-2 mb-3"></div>
-      <label class="text-sm opacity-80">คำอธิษฐาน (ทุกคนเห็นทันที)</label>
-      <input id="inWish" class="inp mb-3" maxlength="40" placeholder="ขอให้เรารักกันนานๆ">
-      <label class="text-sm opacity-80">ความในใจลับถึงแฟน (ล็อกไว้จนกระทงชนกัน)</label>
-      <textarea id="inSecret" class="inp mb-3" rows="3" maxlength="160" placeholder="สิ่งที่อยากบอกเธอ..."></textarea>
-      <label class="text-sm opacity-80">วันเกิดของฉัน (สีมงคล)</label>
-      <select id="inBirthday" class="inp mb-3"><option value="">เลือกวันเกิด</option><option>วันอาทิตย์</option><option>วันจันทร์</option><option>วันอังคาร</option><option>วันพุธ</option><option>วันพฤหัสบดี</option><option>วันศุกร์</option><option>วันเสาร์</option></select><div id="birthdayTip" class="text-xs opacity-75 mb-3">เลือกวันเกิดเพื่อดูโทนสีแนะนำ</div>
-      <div class="flex gap-2 mb-3"><input id="photoFlag" type="file" accept="image/*" class="inp text-xs"><button id="btnPhotoShape" type="button" class="btn2 whitespace-nowrap">💗 กรอบหัวใจ</button></div>
-      <label class="text-sm opacity-80">สิ่งที่อยากทำด้วยกันปีหน้า</label>
-      <div class="flex gap-2 mb-3"><input id="wishItem" class="inp" maxlength="60" placeholder="เช่น ไปเที่ยวทะเลด้วยกัน"><button id="btnWishAdd" class="btn2 whitespace-nowrap" type="button">เพิ่ม</button></div><div id="wishList" class="text-sm mb-3"></div>
-      <label class="text-sm opacity-80">คูปองรัก (เพิ่มเข้ากระทงได้)</label><div class="flex gap-2 mb-3"><select id="couponPick" class="inp"><option>คูปองงดงอน 1 ครั้ง</option><option>เลี้ยงชาบู 1 มื้อ</option><option>นวดไหล่ 15 นาที</option></select><button id="btnCouponAdd" class="btn2 whitespace-nowrap" type="button">🎟️ เพิ่ม</button></div>
-      <label class="text-sm opacity-80">สติกเกอร์ตกแต่ง (แตะกระทงเพื่อวาง)</label><div id="stickerTray" class="flex gap-2 mb-3"><button class="chip sticker">🪷</button><button class="chip sticker">🕯️</button><button class="chip sticker">💖</button><button class="chip sticker">⭐</button><button class="chip sticker">👑</button></div>
-      <button id="btnRelease" class="btn w-full">🪷 ปล่อยกระทงลงน้ำ</button>
+    <div class="panel setup-card w-full max-w-sm">
+      <div class="setup-top"><span class="setup-kicker">คืนพิเศษของเราสองคน</span><div class="setup-step" id="setupStepText">ฉาก 1 จาก 4</div></div>
+      <div class="setup-progress"><i id="setupProgress"></i></div>
+      <div class="setup-head"><div class="setup-emoji" id="setupEmoji">🪷</div><div><h2 id="setupTitle">เลือกกระทงของคุณ</h2><p id="setupHint">เริ่มจากกระทงที่เป็นสไตล์ของคุณ</p></div></div>
+      <section class="wizard-step active" data-step="0"><div id="styleGrid" class="grid grid-cols-4 gap-2 mb-4"></div><div class="setup-label">เลือกของมงคลชิ้นเล็ก ๆ</div><div id="charmGrid" class="grid grid-cols-3 gap-2"></div></section>
+      <section class="wizard-step" data-step="1"><label class="setup-label" for="inWish">คำอธิษฐานของเรา <small>ทุกคนในห้องจะเห็น</small></label><input id="inWish" class="inp" maxlength="40" placeholder="ขอให้เรารักกันนาน ๆ"><div class="field-space"></div><label class="setup-label" for="inSecret">ข้อความถึงแฟน <small>เปิดอ่านเมื่อกระทงมาเจอกัน</small></label><textarea id="inSecret" class="inp" rows="4" maxlength="160" placeholder="มีอะไรอยากบอกเขาไหม..."></textarea><p class="step-note">เขียนจากใจได้เลย ข้อความนี้จะยังเป็นความลับจนถึงตอนเฉลย 💌</p></section>
+      <section class="wizard-step" data-step="2"><label class="setup-label" for="inBirthday">วันเกิดของฉัน <small>ช่วยเลือกสีมงคล</small></label><select id="inBirthday" class="inp"><option value="">เลือกวันเกิด</option><option>วันอาทิตย์</option><option>วันจันทร์</option><option>วันอังคาร</option><option>วันพุธ</option><option>วันพฤหัสบดี</option><option>วันศุกร์</option><option>วันเสาร์</option></select><div id="birthdayTip" class="step-note">เลือกวันเกิดเพื่อดูโทนสีแนะนำ</div><div class="field-space"></div><div class="setup-label">รูปธงกระทง <small>ใส่หรือข้ามก็ได้</small></div><div class="photo-row"><input id="photoFlag" type="file" accept="image/*" class="inp text-xs"><button id="btnPhotoShape" type="button" class="btn2 whitespace-nowrap">💗 กรอบหัวใจ</button></div><div class="field-space"></div><div class="setup-label">สิ่งที่อยากทำด้วยกันปีหน้า</div><div class="inline-form"><input id="wishItem" class="inp" maxlength="60" placeholder="เช่น ไปเที่ยวทะเลด้วยกัน"><button id="btnWishAdd" class="btn2" type="button">เพิ่ม</button></div><div id="wishList" class="text-sm mt-2"></div><div class="field-space"></div><div class="setup-label">คูปองรัก <small>เซอร์ไพรส์ให้กัน</small></div><div class="inline-form"><select id="couponPick" class="inp"><option>คูปองงดงอน 1 ครั้ง</option><option>เลี้ยงชาบู 1 มื้อ</option><option>นวดไหล่ 15 นาที</option></select><button id="btnCouponAdd" class="btn2" type="button">🎟️ เพิ่ม</button></div></section>
+      <section class="wizard-step" data-step="3"><div class="setup-label">แต่งกระทงด้วยสติกเกอร์</div><p class="step-note">เลือกชิ้นโปรดไว้ก่อน แล้วแตะกระทงเพื่อวางได้ตอนลอย</p><div id="stickerTray" class="sticker-tray"><button class="chip sticker">🪷</button><button class="chip sticker">🕯️</button><button class="chip sticker">💖</button><button class="chip sticker">⭐</button><button class="chip sticker">👑</button></div><div class="finish-note"><span>🌙</span><div><strong>พร้อมแล้วหรือยัง</strong><small>แตะปุ่มด้านล่าง แล้วลอยความตั้งใจไปด้วยกัน</small></div></div></section>
+      <div class="wizard-nav"><button id="setupBack" class="btn2" type="button">ย้อนกลับ</button><span class="nav-dots" id="setupDots"><i class="on"></i><i></i><i></i><i></i></span><button id="setupNext" class="btn" type="button">ถัดไป →</button><button id="btnRelease" class="btn hidden" type="button">🪷 ปล่อยกระทงลงน้ำ</button></div>
     </div>
   </div>
 
@@ -414,15 +423,15 @@ function tone(f,d,type,v){
 }
 function musicStep(){
   mStep++;
-  if(musicStyle===0){ const sc=[62,64,67,69,72]; if(Math.random()<.85) tone(hz(sc[Math.floor(Math.random()*5)]+(Math.random()<.3?12:0)),.9,'triangle',.07); }
+  if(musicStyle===0){ const sc=[62,64,67,69,72]; if(Math.random()<.85) tone(hz(sc[Math.floor(Math.random()*5)]+(Math.random()<.16?12:0)),1.5,'sine',.035); }
   else if(musicStyle===1){ const ch=[[57,60,64,67],[53,57,60,64],[48,52,55,59],[55,59,62,65]][Math.floor(mStep/8)%4];
-    if(mStep%8===1) ch.forEach(n=>tone(hz(n),3.2,'sine',.05)); if(mStep%2===0) tone(hz(ch[(mStep/2)%4|0]+12),.6,'sine',.04); }
-  else { const ch=[[60,64,67],[55,59,62],[57,60,64],[53,57,60]][Math.floor(mStep/6)%4]; tone(hz(ch[mStep%3]),.7,'triangle',.07); }
+    if(mStep%8===1) ch.forEach(n=>tone(hz(n),4.2,'sine',.032)); if(mStep%2===0) tone(hz(ch[(mStep/2)%4|0]+12),1,'sine',.026); }
+  else { const ch=[[60,64,67],[55,59,62],[57,60,64],[53,57,60]][Math.floor(mStep/6)%4]; tone(hz(ch[mStep%3]),1.2,'sine',.035); }
 }
 function setMusic(s){
   musicStyle=s; clearInterval(musicTimer);
-  if(s>=0){ ensureAudio(); mStep=0; musicTimer=setInterval(musicStep,[480,420,330][s]); }
-  $('btnMusic').textContent=s<0?'🎵':['🪕','☕','🎸'][s]; $('btnMusic').style.opacity=s<0?.5:1;
+  if(s>=0){ ensureAudio(); mStep=0; musicTimer=setInterval(musicStep,[920,760,680][s]); }
+  $('btnMusic').textContent=s<0?'♫':['🌙','☕','🎹'][s]; $('btnMusic').title=s<0?'เปิดเพลงคลอชิล ๆ':'เพลงคลอ: '+['เปียโนนุ่ม ๆ','Lo-fi ผ่อนคลาย','กีตาร์ละมุน'][s]+' · แตะเพื่อเปลี่ยน'; $('btnMusic').style.opacity=1;
 }
 async function toggleMic(){
   if(micAn){ micAn=null; micStream?.getTracks().forEach(t=>t.stop());micStream=null;$('btnMic').style.opacity=.5; notify('ปิดไมโครโฟนแล้ว'); return; }
@@ -552,6 +561,19 @@ CHARMS.forEach((n,i)=>{
   $('charmGrid').appendChild(b);
 });
 
+let setupIndex=0;
+const setupScenes=[['🪷','เลือกกระทงของคุณ','เริ่มจากกระทงที่เป็นสไตล์ของคุณ'],['💌','เขียนคำอธิษฐาน','สิ่งที่อยากบอกกันในคืนพิเศษ'],['🎁','เตรียมของขวัญให้กัน','รูปคู่ ลิสต์ฝัน และคูปองรัก'],['✨','แต่งกระทงให้พร้อมลอย','เลือกสติกเกอร์ชิ้นโปรดของคุณ']];
+function updateSetupStep(n){
+  setupIndex=Math.max(0,Math.min(3,n));
+  document.querySelectorAll('.wizard-step').forEach((el,i)=>el.classList.toggle('active',i===setupIndex));
+  $('setupStepText').textContent=`ฉาก ${setupIndex+1} จาก 4`;$('setupTitle').textContent=setupScenes[setupIndex][1];$('setupHint').textContent=setupScenes[setupIndex][2];$('setupEmoji').textContent=setupScenes[setupIndex][0];$('setupProgress').style.width=((setupIndex+1)*25)+'%';
+  [...$('setupDots').children].forEach((el,i)=>el.classList.toggle('on',i===setupIndex));
+  $('setupBack').disabled=setupIndex===0;$('setupBack').style.visibility=setupIndex===0?'hidden':'visible';
+  $('setupNext').classList.toggle('hidden',setupIndex===3);$('btnRelease').classList.toggle('hidden',setupIndex!==3);
+  const card=$('setup').querySelector('.setup-card');if(card)card.scrollTop=0;
+}
+$('setupBack').onclick=()=>updateSetupStep(setupIndex-1);
+$('setupNext').onclick=()=>updateSetupStep(setupIndex+1);
 /* ---------- Status / UI refresh ---------- */
 function refreshUI(){
   const st=$('status'), bl=$('btnLight');
@@ -571,6 +593,7 @@ function refreshUI(){
 
 /* ---------- Room flow ---------- */
 function enterSetup(){
+  updateSetupStep(0);
   show('lobby',false); show('setup',!me.released); show('hud',true); show('bottom',true); show('rxRow',me.released);
   $('roomChip').textContent=demo?'โหมดทดสอบ':'ห้อง '+room;
   show('btnCopy',!demo); show('btnQR',!demo);
