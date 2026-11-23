@@ -61,7 +61,7 @@
       <h1 class="text-2xl font-semibold text-center">ลอยกระทงกับแฟน</h1>
       <p class="text-center text-sm opacity-80 mb-4">ปล่อยกระทงคนละเครื่อง แล้วดันให้มาเจอกัน</p>
       <label class="text-sm opacity-80">ชื่อเล่นของฉัน</label>
-      <input id="inName" class="inp mb-3" maxlength="14" placeholder="เช่น ปัน">
+      <input id="inName" class="inp mb-3" maxlength="14" placeholder="เช่น เนม">
       <button id="btnCreate" class="btn w-full">สร้างห้องใหม่</button>
       <div class="text-center text-xs opacity-60 my-3">หรือเข้าร่วมห้องของแฟน</div>
       <div class="flex gap-2">
@@ -545,6 +545,7 @@ function listen(){
       if(pa.tx==null && o.x!=null){ pa.x=o.x; pa.y=o.y; }
       if(o.x!=null){ pa.tx=o.x; pa.ty=o.y; }
       if(o.react && o.react.t!==pa.rt){ const first=pa.rt==null; pa.rt=o.react.t; if(!first||Date.now()-o.react.t<5000) spawnReact(pa,o.react.e); }
+
       if(o.bump && o.bump!==pa.bump){pa.bump=o.bump;if(Date.now()-o.bump<1800){bumpFlash=1;burst(W/2,H*.55);sfxChime();}}
     } else pa.here=false;
     refreshUI();
